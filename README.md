@@ -10,7 +10,7 @@ Reproductor web personal construido a partir del historial público de Last.fm d
 - Reproducción completa mediante los reproductores oficiales de Bandcamp cuando el artista la habilita.
 - “Dig mode” aleatorio para descubrir sonidos y referencias de house/techno.
 - Rankings internos de House y Techno basados en la señal pública `top` de Bandcamp Discover.
-- Actualización automática de los charts House y Techno cada 12 horas.
+- Actualizador reproducible para colección, wishlist y charts de Discover.
 - Búsqueda en Bandcamp primero y previews oficiales de Apple/iTunes como respaldo.
 - Carga de archivos de audio propios para reproducción completa en el navegador.
 - Cola, favoritos, controles de volumen, reproducción aleatoria y repetición.
@@ -35,6 +35,8 @@ python scripts\import_bandcamp.py okefm
 ```
 
 Bandcamp no expone conteos públicos exactos de escuchas o descargas. La app presenta su orden público de Discover (`top`/best-selling) y lo identifica expresamente como tal.
+
+Los charts se actualizan al ejecutar el importador antes de publicar. Bandcamp bloquea este endpoint desde los runners compartidos de GitHub Actions, por lo que no se incluye un workflow programado que fallaría de forma recurrente.
 
 ## Publicación
 
