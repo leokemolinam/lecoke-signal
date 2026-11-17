@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#090b10">
-  <meta name="description" content="Radio personal construida con el historial de Last.fm de lecoke.">
+  <meta name="description" content="Radio personal construida con Last.fm y la colección de Bandcamp de okefm.">
   <title>signal / lecoke</title>
   <link rel="stylesheet" href="styles.css">
 </head>
@@ -22,6 +22,7 @@
       <nav class="main-nav">
         <button class="nav-item is-active" data-view="home"><span>⌂</span>Inicio</button>
         <button class="nav-item" data-view="library"><span>◫</span>Tu biblioteca</button>
+        <button class="nav-item" data-view="bandcamp"><span>▰</span>Bandcamp</button>
         <button class="nav-item" data-view="british"><span>◈</span>British signal</button>
         <button class="nav-item" data-view="favorites"><span>♡</span>Favoritos</button>
       </nav>
@@ -59,10 +60,10 @@
           <div class="hero-copy">
             <p class="eyebrow"><span class="live-dot"></span>Radio personal</p>
             <h1>Tu historia,<br><em>en movimiento.</em></h1>
-            <p class="hero-description">Una sesión continua construida con 57.556 scrobbles. Sin anuncios insertados por esta app. Tú eliges la señal.</p>
+            <p class="hero-description">57.556 scrobbles conectados con 124 lanzamientos de tu colección Bandcamp. Reproducción completa cuando el artista la habilita.</p>
             <div class="hero-actions">
-              <button class="primary-button" id="play-dna"><span>▶</span> Reproducir tu ADN</button>
-              <button class="ghost-button" data-view-target="library">Explorar biblioteca</button>
+              <button class="primary-button" data-view-target="bandcamp"><span>▶</span> Escuchar colección completa</button>
+              <button class="ghost-button" id="play-dna">Señal Last.fm</button>
             </div>
             <div class="hero-stats" aria-label="Resumen de Last.fm">
               <div><strong>57.556</strong><span>scrobbles</span></div>
@@ -139,6 +140,49 @@
         </div>
       </section>
 
+      <section class="view" id="view-bandcamp">
+        <div class="page-heading bandcamp-heading">
+          <p class="eyebrow">Bandcamp / okefm</p>
+          <h1>Tu colección,<br>en versión completa.</h1>
+          <p>Una mesa de digging para tu etapa como DJ de house y techno. Reproductores oficiales, wishlist y hallazgos aleatorios en un mismo lugar.</p>
+          <div class="hero-actions">
+            <button class="primary-button" id="dig-now"><span>▶</span> Iniciar Dig mode</button>
+            <a class="ghost-button" href="https://bandcamp.com/discover/house" target="_blank" rel="noopener">Explorar house ↗</a>
+            <a class="ghost-button" href="https://bandcamp.com/discover/techno" target="_blank" rel="noopener">Explorar techno ↗</a>
+          </div>
+        </div>
+
+        <div class="bandcamp-overview">
+          <div class="bandcamp-stats">
+            <div><strong id="bandcamp-collection-count">124</strong><span>en tu colección</span></div>
+            <div><strong id="bandcamp-wishlist-count">111</strong><span>en wishlist</span></div>
+            <div><strong id="bandcamp-genre">Electronic</strong><span>género favorito</span></div>
+          </div>
+          <div class="bandcamp-player-shell" id="bandcamp-player-shell">
+            <div class="bandcamp-player-empty" id="bandcamp-player-empty">
+              <span>▰</span>
+              <div><strong>Elige un lanzamiento</strong><small>Aquí aparecerá el reproductor oficial de Bandcamp.</small></div>
+            </div>
+            <div class="bandcamp-player-meta" id="bandcamp-player-meta" hidden>
+              <div><p class="eyebrow">REPRODUCCIÓN OFICIAL</p><strong id="bandcamp-now-title"></strong><span id="bandcamp-now-artist"></span></div>
+              <div class="bandcamp-player-links"><button class="text-button" id="dig-next">Otro hallazgo →</button><a id="bandcamp-now-link" target="_blank" rel="noopener">Abrir en Bandcamp ↗</a></div>
+            </div>
+            <iframe id="bandcamp-player" title="Reproductor oficial de Bandcamp" allow="autoplay; encrypted-media" loading="lazy" hidden></iframe>
+          </div>
+        </div>
+
+        <div class="section-heading bandcamp-browser-heading">
+          <div><p class="eyebrow">Biblioteca pública</p><h2 id="bandcamp-list-title">Tu colección</h2></div>
+          <div class="filter-row" id="bandcamp-filters">
+            <button class="filter-chip is-active" data-bandcamp-mode="collection">Colección</button>
+            <button class="filter-chip" data-bandcamp-mode="wishlist">Wishlist</button>
+            <button class="filter-chip" data-bandcamp-mode="dig">Dig picks</button>
+          </div>
+        </div>
+        <p class="bandcamp-result-note" id="bandcamp-result-note"></p>
+        <div class="bandcamp-grid" id="bandcamp-grid"></div>
+      </section>
+
       <section class="view" id="view-favorites">
         <div class="page-heading">
           <p class="eyebrow">Guardado en este navegador</p>
@@ -152,7 +196,7 @@
         <div class="page-heading">
           <p class="eyebrow">Catálogo externo</p>
           <h1 id="search-heading">Resultados</h1>
-          <p>Previews oficiales encontrados por artista y canción.</p>
+          <p>La colección de Bandcamp se consulta primero; el catálogo externo funciona como respaldo.</p>
         </div>
         <div class="track-table" id="search-results"></div>
       </section>
@@ -183,11 +227,11 @@
       </div>
     </div>
     <div class="player-actions">
-      <span class="source-badge" id="source-badge">SIN PUBLICIDAD</span>
+      <span class="source-badge" id="source-badge">BANDCAMP + LOCAL</span>
       <button class="control-button" id="queue-button" aria-label="Ver cola">☷</button>
       <span aria-hidden="true">◖</span>
       <input id="volume" type="range" min="0" max="1" step="0.01" value="0.8" aria-label="Volumen">
-      <a id="full-track-link" class="external-link is-disabled" target="_blank" rel="noopener">Abrir completa ↗</a>
+      <a id="full-track-link" class="external-link is-disabled" target="_blank" rel="noopener">Abrir fuente ↗</a>
     </div>
   </div>
 
@@ -199,7 +243,7 @@
   <div class="profile-popover" id="profile-popover">
     <strong>Oke / lecoke</strong>
     <span>Last.fm desde 2009</span>
-    <small>Los datos de afinidad están integrados de forma estática. Las búsquedas se consultan bajo demanda.</small>
+    <small>Last.fm alimenta la afinidad. Bandcamp aporta tu colección pública y sus reproductores oficiales.</small>
   </div>
 
   <div class="toast" id="toast" role="status" aria-live="polite"></div>

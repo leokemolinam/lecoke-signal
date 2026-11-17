@@ -10,6 +10,10 @@ const state = {
   favorites: JSON.parse(localStorage.getItem("signal-favorites") || "[]"),
   previewCache: JSON.parse(localStorage.getItem("signal-preview-cache") || "{}"),
   lists: {},
+  bandcamp: null,
+  bandcampMode: "collection",
+  bandcampDisplay: [],
+  currentBandcamp: null,
 };
 
 const audio = new Audio();
@@ -39,6 +43,25 @@ function formatTime(seconds) {
   if (!Number.isFinite(seconds)) return "0:00";
   const minutes = Math.floor(seconds / 60);
   return `${minutes}:${String(Math.floor(seconds % 60)).padStart(2, "0")}`;
+}
+
+function escapeHtml(value = "") {
+  return String(value).replace(/[&<>'"]/g, (character) => ({
+    "&": "&amp;",
+    "<": "&lt;",
+    ">": "&gt;",
+    "'": "&#39;",
+    '"': "&quot;",
+  })[character]);
+}
+
+function shuffled(items) {
+  const copy = [...items];
+  for (let index = copy.length - 1; index > 0; index -= 1) {
+    const swap = Math.floor(Math.random() * (index + 1));
+    [copy[index], copy[swap]] = [copy[swap], copy[index]];
+  }
+  return copy;
 }
 
 let toastTimer;
@@ -185,6 +208,7 @@ function setPlayState(playing) {
 
 async function playTrack(track, options = {}) {
   if (!track) return;
+  state.currentBandcamp = null;
   if (options.queue) state.queue = options.queue;
   if (Number.isInteger(options.index)) state.currentIndex = options.index;
   toast(`Buscando una fuente para “${track.track}”…`);
@@ -241,6 +265,12 @@ function previousTrack() {
 }
 
 function togglePlayback() {
+  if (state.currentBandcamp) {
+    showView("bandcamp");
+    $("#bandcamp-player-shell").scrollIntoView({ behavior: "smooth", block: "center" });
+    toast("Usa el control del reproductor oficial de Bandcamp");
+    return;
+  }
   if (!state.current) {
     playMix(state.activeMix || "dna");
     return;
@@ -328,6 +358,98 @@ function renderFavorites() {
   renderTrackTable($("#favorite-tracks"), state.favorites, "favorites");
 }
 
+function allBandcampItems() {
+  if (!state.bandcamp) return [];
+  const byId = new Map();
+  [...state.bandcamp.collection, ...state.bandcamp.wishlist].forEach((item) => byId.set(item.id, item));
+  return [...byId.values()];
+}
+
+function bandcampMatches(query) {
+  const needle = normalize(query);
+  if (!needle) return allBandcampItems();
+  return allBandcampItems().filter((item) => normalize([
+    item.title,
+    item.artist,
+    item.album,
+    item.featuredTrack,
+  ].join(" ")).includes(needle));
+}
+
+function renderBandcamp(mode = state.bandcampMode, query = "") {
+  if (!state.bandcamp) return;
+  state.bandcampMode = mode;
+  let items;
+  let title;
+  if (query) {
+    items = bandcampMatches(query);
+    title = `Resultados para “${query}”`;
+  } else if (mode === "wishlist") {
+    items = state.bandcamp.wishlist;
+    title = "Tu wishlist";
+  } else if (mode === "dig") {
+    items = shuffled(allBandcampItems()).slice(0, 32);
+    title = "Dig picks";
+  } else {
+    items = state.bandcamp.collection;
+    title = "Tu colección";
+  }
+  state.bandcampDisplay = items;
+  $("#bandcamp-list-title").textContent = title;
+  $("#bandcamp-result-note").textContent = query
+    ? `${items.length} coincidencia${items.length === 1 ? "" : "s"} con reproducción oficial disponible.`
+    : mode === "dig"
+      ? "Selección aleatoria para buscar texturas, grooves y referencias nuevas."
+      : `${items.length} lanzamientos públicos de okefm.`;
+  $$("[data-bandcamp-mode]").forEach((button) => button.classList.toggle("is-active", !query && button.dataset.bandcampMode === mode));
+  $("#bandcamp-grid").innerHTML = items.map((item) => `
+    <article class="bandcamp-card ${state.currentBandcamp?.id === item.id ? "is-current" : ""}" data-bandcamp-card="${escapeHtml(item.id)}">
+      <div class="bandcamp-card-art">
+        ${item.artwork ? `<img src="${escapeHtml(item.artwork)}" alt="" loading="lazy">` : ""}
+        <span class="bandcamp-card-badge">${item.source === "collection" ? "colección" : "wishlist"}</span>
+        <button class="bandcamp-card-play" data-bandcamp-id="${escapeHtml(item.id)}" aria-label="Escuchar ${escapeHtml(item.title)} completo">▶</button>
+      </div>
+      <div class="bandcamp-card-copy">
+        <strong title="${escapeHtml(item.title)}">${escapeHtml(item.title)}</strong>
+        <span title="${escapeHtml(item.artist)}">${escapeHtml(item.artist)}</span>
+        <footer><span>${item.itemType}</span><span>${formatNumber(item.streamableTracks)} track${item.streamableTracks === 1 ? "" : "s"}</span></footer>
+      </div>
+    </article>
+  `).join("") || `<div class="empty-state"><strong>No encontré coincidencias en Bandcamp.</strong>Prueba con otro artista o título.</div>`;
+}
+
+function openBandcampItem(item, options = {}) {
+  if (!item) return;
+  audio.pause();
+  state.currentBandcamp = item;
+  const player = $("#bandcamp-player");
+  player.src = item.embedUrl;
+  player.hidden = false;
+  $("#bandcamp-player-empty").hidden = true;
+  $("#bandcamp-player-meta").hidden = false;
+  $("#bandcamp-now-title").textContent = item.title;
+  $("#bandcamp-now-artist").textContent = `${item.artist}${item.featuredTrack ? ` · ${item.featuredTrack}` : ""}`;
+  $("#bandcamp-now-link").href = item.url;
+  $("#player-title").textContent = item.title;
+  $("#player-artist").textContent = item.artist;
+  $("#source-badge").textContent = "BANDCAMP · COMPLETA";
+  const link = $("#full-track-link");
+  link.href = item.url;
+  link.classList.remove("is-disabled");
+  setArtwork($("#player-thumb"), { artwork: item.artwork, track: item.title }, "B");
+  showView("bandcamp");
+  $$('[data-bandcamp-card]').forEach((card) => card.classList.toggle("is-current", card.dataset.bandcampCard === item.id));
+  if (options.scroll !== false) $("#bandcamp-player-shell").scrollIntoView({ behavior: "smooth", block: "center" });
+  toast("Reproductor completo de Bandcamp listo");
+}
+
+function digNext() {
+  const pool = allBandcampItems().filter((item) => item.id !== state.currentBandcamp?.id);
+  const wishPool = state.bandcamp?.wishlist.filter((item) => item.id !== state.currentBandcamp?.id) || [];
+  const source = Math.random() < 0.7 && wishPool.length ? wishPool : pool;
+  openBandcampItem(source[Math.floor(Math.random() * source.length)]);
+}
+
 function renderQueue() {
   const container = $("#queue-list");
   if (!state.queue.length) {
@@ -344,9 +466,16 @@ function renderQueue() {
 }
 
 async function searchMusic(query) {
+  const bandcampResults = bandcampMatches(query);
+  if (bandcampResults.length) {
+    showView("bandcamp");
+    renderBandcamp("all", query);
+    toast(`${bandcampResults.length} resultado${bandcampResults.length === 1 ? "" : "s"} en tu Bandcamp`);
+    return;
+  }
   showView("search");
   $("#search-heading").textContent = `“${query}”`;
-  $("#search-results").innerHTML = `<div class="loading-row">Buscando previews oficiales…</div>`;
+  $("#search-results").innerHTML = `<div class="loading-row">Buscando en el catálogo de respaldo…</div>`;
   try {
     const results = await queryItunes(query, 30);
     const tracks = results.filter((item) => item.previewUrl).map((item) => ({
@@ -391,6 +520,15 @@ function bindEvents() {
     const chip = event.target.closest("[data-library-mix]");
     if (chip) renderLibrary(chip.dataset.libraryMix);
 
+    const bandcampMode = event.target.closest("[data-bandcamp-mode]");
+    if (bandcampMode) renderBandcamp(bandcampMode.dataset.bandcampMode);
+
+    const bandcampPlay = event.target.closest("[data-bandcamp-id]");
+    if (bandcampPlay) {
+      const item = allBandcampItems().find((candidate) => candidate.id === bandcampPlay.dataset.bandcampId);
+      openBandcampItem(item);
+    }
+
     const play = event.target.closest("[data-list][data-index]");
     if (play) {
       const list = state.lists[play.dataset.list] || [];
@@ -418,6 +556,8 @@ function bindEvents() {
 
   $("#play-dna").addEventListener("click", () => playMix("dna"));
   $("#play-british").addEventListener("click", () => playMix("british"));
+  $("#dig-now").addEventListener("click", digNext);
+  $("#dig-next").addEventListener("click", digNext);
   $("#hero-play").addEventListener("click", togglePlayback);
   $("#main-play").addEventListener("click", togglePlayback);
   $("#next-button").addEventListener("click", nextTrack);
@@ -465,8 +605,12 @@ function bindEvents() {
 
 async function init() {
   try {
-    const response = await fetch("data/profile.json");
-    state.data = await response.json();
+    const [profileResponse, bandcampResponse] = await Promise.all([
+      fetch("data/profile.json"),
+      fetch("data/bandcamp.json"),
+    ]);
+    state.data = await profileResponse.json();
+    state.bandcamp = await bandcampResponse.json();
     state.mixes = state.data.mixes;
     renderMixes();
     renderArtists();
@@ -474,6 +618,10 @@ async function init() {
     renderBritish();
     renderFavorites();
     renderQueue();
+    renderBandcamp();
+    $("#bandcamp-collection-count").textContent = formatNumber(state.bandcamp.profile.collectionCount);
+    $("#bandcamp-wishlist-count").textContent = formatNumber(state.bandcamp.profile.wishlistCount);
+    $("#bandcamp-genre").textContent = state.bandcamp.profile.favoriteGenre || "Electronic";
     bindEvents();
   } catch (error) {
     console.error(error);

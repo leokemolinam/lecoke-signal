@@ -6,14 +6,17 @@ Reproductor web personal construido a partir del historial público de Last.fm d
 
 - 57.556 scrobbles y 2.639 artistas convertidos en mezclas personales.
 - Señales dedicadas a tu ADN musical, artistas británicos, electrónica 2026 y archivo 2009.
-- Búsqueda y reproducción de previews oficiales disponibles en el catálogo de Apple/iTunes.
+- 124 lanzamientos de la colección y 111 de la wishlist pública de Bandcamp `okefm`.
+- Reproducción completa mediante los reproductores oficiales de Bandcamp cuando el artista la habilita.
+- “Dig mode” aleatorio para descubrir sonidos y referencias de house/techno.
+- Búsqueda en Bandcamp primero y previews oficiales de Apple/iTunes como respaldo.
 - Carga de archivos de audio propios para reproducción completa en el navegador.
 - Cola, favoritos, controles de volumen, reproducción aleatoria y repetición.
 - Diseño adaptable para escritorio y móvil.
 
 ## Reproducción y derechos
 
-La aplicación no bloquea anuncios ni elude las reglas de ningún servicio. Reproduce previews oficiales cuando están disponibles y archivos locales aportados por el usuario. Los enlaces a canciones completas abren el servicio autorizado correspondiente, sujeto a sus condiciones y suscripción.
+La aplicación no bloquea anuncios ni elude las reglas de ningún servicio. La reproducción completa usa el reproductor oficial de Bandcamp o archivos locales aportados por el usuario. Las previews de Apple/iTunes se conservan únicamente como respaldo. La disponibilidad de cada pista depende de lo habilitado por el artista o sello.
 
 ## Ejecutar localmente
 
@@ -22,6 +25,12 @@ python -m http.server 4188 --directory dist
 ```
 
 Después abre `http://127.0.0.1:4188`.
+
+Para volver a sincronizar la colección pública de Bandcamp:
+
+```powershell
+python scripts\import_bandcamp.py okefm
+```
 
 ## Publicación
 
