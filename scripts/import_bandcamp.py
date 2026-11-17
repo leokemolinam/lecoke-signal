@@ -102,11 +102,65 @@ def compact(item: dict, source: str) -> dict:
     }
 
 
+def discover_url(item: dict) -> str:
+    hints = item.get("url_hints") or {}
+    subdomain = hints.get("subdomain") or "bandcamp"
+    item_type = "album" if (hints.get("item_type") or item.get("type")) == "a" else "track"
+    slug = hints.get("slug") or ""
+    return f"https://{subdomain}.bandcamp.com/{item_type}/{slug}"
+
+
+def compact_discover(item: dict, tag: str, rank: int) -> dict:
+    item_type = item.get("type") or "a"
+    item_id = item.get("id")
+    player_type = "album" if item_type == "a" else "track"
+    featured = item.get("featured_track") or {}
+    return {
+        "id": f"{item_type}{item_id}",
+        "source": f"chart-{tag}",
+        "itemType": player_type,
+        "title": item.get("primary_text") or featured.get("title") or "Sin título",
+        "artist": item.get("secondary_text") or "Bandcamp",
+        "album": item.get("primary_text") or "",
+        "featuredTrack": featured.get("title") or "",
+        "artwork": f"https://f4.bcbits.com/img/a{item.get('art_id')}_10.jpg" if item.get("art_id") else "",
+        "url": discover_url(item),
+        "embedUrl": (
+            f"https://bandcamp.com/EmbeddedPlayer/{player_type}={item_id}/"
+            "size=large/bgcol=11141c/linkcol=ff4d61/tracklist=true/"
+            "artwork=small/transparent=true/"
+        ),
+        "streamableTracks": 1,
+        "duration": featured.get("duration") or 0,
+        "added": item.get("publish_date") or "",
+        "purchased": False,
+        "rank": rank,
+        "tag": tag,
+        "location": item.get("location_text") or "",
+    }
+
+
+def fetch_discover(tag: str) -> dict:
+    response = request_json(
+        "https://bandcamp.com/api/discover/3/get_web",
+        {"p": 0, "s": "top", "g": "electronic", "t": tag},
+    )
+    items = response.get("items", [])
+    return {
+        "tag": tag,
+        "label": f"{tag.title()} best-selling",
+        "updatedAt": response.get("timestamp") or "",
+        "totalCount": response.get("total_count") or len(items),
+        "items": [compact_discover(item, tag, rank) for rank, item in enumerate(items, 1)],
+    }
+
+
 def main() -> None:
     username = sys.argv[1] if len(sys.argv) > 1 else "okefm"
     profile = load_profile(username)
     collection = fetch_all(profile, "collection")
     wishlist = fetch_all(profile, "wishlist")
+    charts = {tag: fetch_discover(tag) for tag in ("house", "techno")}
     fan = profile["fan_data"]
     payload = {
         "profile": {
@@ -121,10 +175,14 @@ def main() -> None:
         },
         "collection": [compact(item, "collection") for item in collection],
         "wishlist": [compact(item, "wishlist") for item in wishlist],
+        "charts": charts,
     }
     OUTPUT.parent.mkdir(parents=True, exist_ok=True)
     OUTPUT.write_text(json.dumps(payload, ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
-    print(f"{len(collection)} collection + {len(wishlist)} wishlist -> {OUTPUT}")
+    print(
+        f"{len(collection)} collection + {len(wishlist)} wishlist + "
+        f"{len(charts['house']['items'])} house + {len(charts['techno']['items'])} techno -> {OUTPUT}"
+    )
 
 
 if __name__ == "__main__":

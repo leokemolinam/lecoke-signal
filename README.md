@@ -9,6 +9,8 @@ Reproductor web personal construido a partir del historial público de Last.fm d
 - 124 lanzamientos de la colección y 111 de la wishlist pública de Bandcamp `okefm`.
 - Reproducción completa mediante los reproductores oficiales de Bandcamp cuando el artista la habilita.
 - “Dig mode” aleatorio para descubrir sonidos y referencias de house/techno.
+- Rankings internos de House y Techno basados en la señal pública `top` de Bandcamp Discover.
+- Actualización automática de colección, wishlist y charts cada 12 horas.
 - Búsqueda en Bandcamp primero y previews oficiales de Apple/iTunes como respaldo.
 - Carga de archivos de audio propios para reproducción completa en el navegador.
 - Cola, favoritos, controles de volumen, reproducción aleatoria y repetición.
@@ -31,6 +33,8 @@ Para volver a sincronizar la colección pública de Bandcamp:
 ```powershell
 python scripts\import_bandcamp.py okefm
 ```
+
+Bandcamp no expone conteos públicos exactos de escuchas o descargas. La app presenta su orden público de Discover (`top`/best-selling) y lo identifica expresamente como tal.
 
 ## Publicación
 

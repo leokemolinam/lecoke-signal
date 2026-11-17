@@ -361,8 +361,21 @@ function renderFavorites() {
 function allBandcampItems() {
   if (!state.bandcamp) return [];
   const byId = new Map();
-  [...state.bandcamp.collection, ...state.bandcamp.wishlist].forEach((item) => byId.set(item.id, item));
+  const charts = Object.values(state.bandcamp.charts || {}).flatMap((chart) => chart.items || []);
+  [...charts, ...state.bandcamp.wishlist, ...state.bandcamp.collection].forEach((item) => byId.set(item.id, item));
   return [...byId.values()];
+}
+
+function chartItems(tag) {
+  return state.bandcamp?.charts?.[tag]?.items || [];
+}
+
+function bandcampSourceLabel(item) {
+  if (item.source === "collection") return "colección";
+  if (item.source === "wishlist") return "wishlist";
+  if (item.source === "chart-house") return `house #${item.rank}`;
+  if (item.source === "chart-techno") return `techno #${item.rank}`;
+  return "Bandcamp";
 }
 
 function bandcampMatches(query) {
@@ -390,6 +403,9 @@ function renderBandcamp(mode = state.bandcampMode, query = "") {
   } else if (mode === "dig") {
     items = shuffled(allBandcampItems()).slice(0, 32);
     title = "Dig picks";
+  } else if (mode === "house" || mode === "techno") {
+    items = chartItems(mode);
+    title = `${mode === "house" ? "House" : "Techno"} best-selling`;
   } else {
     items = state.bandcamp.collection;
     title = "Tu colección";
@@ -398,6 +414,8 @@ function renderBandcamp(mode = state.bandcampMode, query = "") {
   $("#bandcamp-list-title").textContent = title;
   $("#bandcamp-result-note").textContent = query
     ? `${items.length} coincidencia${items.length === 1 ? "" : "s"} con reproducción oficial disponible.`
+    : mode === "house" || mode === "techno"
+      ? `${items.length} lanzamientos populares en Discover, ordenados por la señal pública “top” de Bandcamp.`
     : mode === "dig"
       ? "Selección aleatoria para buscar texturas, grooves y referencias nuevas."
       : `${items.length} lanzamientos públicos de okefm.`;
@@ -406,13 +424,13 @@ function renderBandcamp(mode = state.bandcampMode, query = "") {
     <article class="bandcamp-card ${state.currentBandcamp?.id === item.id ? "is-current" : ""}" data-bandcamp-card="${escapeHtml(item.id)}">
       <div class="bandcamp-card-art">
         ${item.artwork ? `<img src="${escapeHtml(item.artwork)}" alt="" loading="lazy">` : ""}
-        <span class="bandcamp-card-badge">${item.source === "collection" ? "colección" : "wishlist"}</span>
+        <span class="bandcamp-card-badge">${escapeHtml(bandcampSourceLabel(item))}</span>
         <button class="bandcamp-card-play" data-bandcamp-id="${escapeHtml(item.id)}" aria-label="Escuchar ${escapeHtml(item.title)} completo">▶</button>
       </div>
       <div class="bandcamp-card-copy">
         <strong title="${escapeHtml(item.title)}">${escapeHtml(item.title)}</strong>
         <span title="${escapeHtml(item.artist)}">${escapeHtml(item.artist)}</span>
-        <footer><span>${item.itemType}</span><span>${formatNumber(item.streamableTracks)} track${item.streamableTracks === 1 ? "" : "s"}</span></footer>
+        <footer><span>${item.itemType}</span><span>${item.rank ? `top #${item.rank}` : `${formatNumber(item.streamableTracks)} track${item.streamableTracks === 1 ? "" : "s"}`}</span></footer>
       </div>
     </article>
   `).join("") || `<div class="empty-state"><strong>No encontré coincidencias en Bandcamp.</strong>Prueba con otro artista o título.</div>`;
@@ -444,9 +462,10 @@ function openBandcampItem(item, options = {}) {
 }
 
 function digNext() {
-  const pool = allBandcampItems().filter((item) => item.id !== state.currentBandcamp?.id);
   const wishPool = state.bandcamp?.wishlist.filter((item) => item.id !== state.currentBandcamp?.id) || [];
-  const source = Math.random() < 0.7 && wishPool.length ? wishPool : pool;
+  const chartsPool = [...chartItems("house"), ...chartItems("techno")].filter((item) => item.id !== state.currentBandcamp?.id);
+  const pool = [...wishPool, ...chartsPool];
+  const source = Math.random() < 0.65 && chartsPool.length ? chartsPool : pool;
   openBandcampItem(source[Math.floor(Math.random() * source.length)]);
 }
 

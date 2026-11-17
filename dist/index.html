@@ -147,8 +147,8 @@
           <p>Una mesa de digging para tu etapa como DJ de house y techno. Reproductores oficiales, wishlist y hallazgos aleatorios en un mismo lugar.</p>
           <div class="hero-actions">
             <button class="primary-button" id="dig-now"><span>▶</span> Iniciar Dig mode</button>
-            <a class="ghost-button" href="https://bandcamp.com/discover/house" target="_blank" rel="noopener">Explorar house ↗</a>
-            <a class="ghost-button" href="https://bandcamp.com/discover/techno" target="_blank" rel="noopener">Explorar techno ↗</a>
+            <button class="ghost-button" data-bandcamp-mode="house">Explorar house</button>
+            <button class="ghost-button" data-bandcamp-mode="techno">Explorar techno</button>
           </div>
         </div>
 
@@ -177,6 +177,8 @@
             <button class="filter-chip is-active" data-bandcamp-mode="collection">Colección</button>
             <button class="filter-chip" data-bandcamp-mode="wishlist">Wishlist</button>
             <button class="filter-chip" data-bandcamp-mode="dig">Dig picks</button>
+            <button class="filter-chip" data-bandcamp-mode="house">House charts</button>
+            <button class="filter-chip" data-bandcamp-mode="techno">Techno charts</button>
           </div>
         </div>
         <p class="bandcamp-result-note" id="bandcamp-result-note"></p>
