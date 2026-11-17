@@ -1,0 +1,484 @@
+const state = {
+  data: null,
+  mixes: [],
+  queue: [],
+  currentIndex: -1,
+  current: null,
+  activeMix: "dna",
+  shuffle: false,
+  repeat: false,
+  favorites: JSON.parse(localStorage.getItem("signal-favorites") || "[]"),
+  previewCache: JSON.parse(localStorage.getItem("signal-preview-cache") || "{}"),
+  lists: {},
+};
+
+const audio = new Audio();
+audio.preload = "metadata";
+audio.volume = 0.8;
+
+const $ = (selector, scope = document) => scope.querySelector(selector);
+const $$ = (selector, scope = document) => [...scope.querySelectorAll(selector)];
+
+function normalize(value = "") {
+  return value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]/gi, "")
+    .toLowerCase();
+}
+
+function idFor(track) {
+  return `${track.artist}::${track.track}`;
+}
+
+function formatNumber(value) {
+  return new Intl.NumberFormat("es-CO").format(value || 0);
+}
+
+function formatTime(seconds) {
+  if (!Number.isFinite(seconds)) return "0:00";
+  const minutes = Math.floor(seconds / 60);
+  return `${minutes}:${String(Math.floor(seconds % 60)).padStart(2, "0")}`;
+}
+
+let toastTimer;
+function toast(message) {
+  const node = $("#toast");
+  node.textContent = message;
+  node.classList.add("is-visible");
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => node.classList.remove("is-visible"), 2600);
+}
+
+function persistFavorites() {
+  localStorage.setItem("signal-favorites", JSON.stringify(state.favorites));
+}
+
+function isFavorite(track) {
+  return state.favorites.some((item) => idFor(item) === idFor(track));
+}
+
+function toggleFavorite(track = state.current) {
+  if (!track) return;
+  const index = state.favorites.findIndex((item) => idFor(item) === idFor(track));
+  if (index >= 0) {
+    state.favorites.splice(index, 1);
+    toast("Eliminada de favoritos");
+  } else {
+    state.favorites.unshift({ ...track });
+    toast("Guardada en favoritos");
+  }
+  persistFavorites();
+  updateFavoriteButtons();
+  renderFavorites();
+}
+
+function updateFavoriteButtons() {
+  $$(".favorite-button").forEach((button) => {
+    button.classList.toggle("is-active", Boolean(state.current && isFavorite(state.current)));
+    button.textContent = state.current && isFavorite(state.current) ? "♥" : "♡";
+  });
+}
+
+function artworkUrl(result, size = 600) {
+  return (result.artworkUrl100 || result.artworkUrl60 || "").replace(/\d+x\d+bb/, `${size}x${size}bb`);
+}
+
+async function queryItunes(term, limit = 20) {
+  const url = new URL("https://itunes.apple.com/search");
+  url.searchParams.set("term", term);
+  url.searchParams.set("media", "music");
+  url.searchParams.set("entity", "song");
+  url.searchParams.set("country", "CO");
+  url.searchParams.set("limit", String(limit));
+  const response = await fetch(url);
+  if (!response.ok) throw new Error("No se pudo consultar el catálogo");
+  const payload = await response.json();
+  return payload.results || [];
+}
+
+function scoreResult(result, track) {
+  const artist = normalize(result.artistName);
+  const title = normalize(result.trackName);
+  const targetArtist = normalize(track.artist);
+  const targetTitle = normalize(track.track);
+  let score = 0;
+  if (artist === targetArtist) score += 9;
+  else if (artist.includes(targetArtist) || targetArtist.includes(artist)) score += 5;
+  if (title === targetTitle) score += 12;
+  else if (title.includes(targetTitle) || targetTitle.includes(title)) score += 6;
+  if (result.previewUrl) score += 3;
+  return score;
+}
+
+async function resolveTrack(track) {
+  if (track.localUrl || track.previewUrl) return track;
+  const key = idFor(track);
+  if (state.previewCache[key]) return { ...track, ...state.previewCache[key] };
+
+  const results = await queryItunes(`${track.artist} ${track.track}`, 12);
+  const best = results
+    .filter((result) => result.previewUrl)
+    .sort((a, b) => scoreResult(b, track) - scoreResult(a, track))[0];
+  if (!best || scoreResult(best, track) < 7) return null;
+
+  const resolved = {
+    previewUrl: best.previewUrl,
+    artwork: artworkUrl(best),
+    album: best.collectionName || track.album,
+    fullUrl: best.trackViewUrl || best.collectionViewUrl || "",
+    durationMs: best.trackTimeMillis || 0,
+    sourceType: "preview",
+  };
+  state.previewCache[key] = resolved;
+  const entries = Object.entries(state.previewCache).slice(-180);
+  state.previewCache = Object.fromEntries(entries);
+  localStorage.setItem("signal-preview-cache", JSON.stringify(state.previewCache));
+  return { ...track, ...resolved };
+}
+
+function setArtwork(container, track, fallback = "S") {
+  if (!container) return;
+  container.innerHTML = track?.artwork
+    ? `<img src="${track.artwork}" alt="Carátula de ${track.track}">`
+    : `<span>${fallback}</span>`;
+}
+
+function updateNowPlaying(track) {
+  state.current = track;
+  $("#player-title").textContent = track.track;
+  $("#player-artist").textContent = track.artist;
+  $("#hero-title").textContent = track.track;
+  $("#hero-artist").textContent = `${track.artist}${track.album ? ` · ${track.album}` : ""}`;
+  $("#hero-source").textContent = track.localUrl ? "ARCHIVO LOCAL · REPRODUCCIÓN COMPLETA" : "PREVIEW OFICIAL · SIN ANUNCIOS INSERTADOS";
+  $("#source-badge").textContent = track.localUrl ? "ARCHIVO LOCAL" : "PREVIEW OFICIAL";
+  setArtwork($("#player-thumb"), track);
+  const heroArtwork = $("#hero-artwork");
+  heroArtwork.querySelectorAll("img").forEach((node) => node.remove());
+  const placeholder = heroArtwork.querySelector(".artwork-placeholder");
+  if (track.artwork) {
+    const image = document.createElement("img");
+    image.src = track.artwork;
+    image.alt = `Carátula de ${track.track}`;
+    heroArtwork.insertBefore(image, heroArtwork.firstChild);
+    placeholder.style.display = "none";
+  } else {
+    placeholder.style.display = "grid";
+  }
+
+  const link = $("#full-track-link");
+  if (track.fullUrl) {
+    link.href = track.fullUrl;
+    link.classList.remove("is-disabled");
+  } else {
+    link.removeAttribute("href");
+    link.classList.add("is-disabled");
+  }
+  updateFavoriteButtons();
+  renderQueue();
+}
+
+function setPlayState(playing) {
+  $("#main-play").textContent = playing ? "❚❚" : "▶";
+  $("#hero-play").textContent = playing ? "❚❚" : "▶";
+}
+
+async function playTrack(track, options = {}) {
+  if (!track) return;
+  if (options.queue) state.queue = options.queue;
+  if (Number.isInteger(options.index)) state.currentIndex = options.index;
+  toast(`Buscando una fuente para “${track.track}”…`);
+  try {
+    const resolved = await resolveTrack(track);
+    if (!resolved) {
+      toast("No encontré un preview autorizado para esta canción");
+      if (options.autoskip) nextTrack();
+      return;
+    }
+    const sameSource = audio.src === (resolved.localUrl || resolved.previewUrl);
+    updateNowPlaying(resolved);
+    if (!sameSource) audio.src = resolved.localUrl || resolved.previewUrl;
+    await audio.play();
+    setPlayState(true);
+    toast(resolved.localUrl ? "Reproduciendo archivo local" : "Reproduciendo preview oficial");
+  } catch (error) {
+    console.error(error);
+    toast("La fuente no está disponible en este momento");
+  }
+}
+
+function playMix(mixId, startIndex = 0) {
+  const mix = state.mixes.find((item) => item.id === mixId);
+  if (!mix || !mix.tracks.length) return;
+  state.activeMix = mixId;
+  state.queue = [...mix.tracks];
+  state.currentIndex = startIndex;
+  playTrack(state.queue[startIndex], { queue: state.queue, index: startIndex });
+}
+
+function nextTrack() {
+  if (!state.queue.length) return;
+  if (state.repeat && state.current) {
+    audio.currentTime = 0;
+    audio.play();
+    return;
+  }
+  const next = state.shuffle
+    ? Math.floor(Math.random() * state.queue.length)
+    : (state.currentIndex + 1) % state.queue.length;
+  state.currentIndex = next;
+  playTrack(state.queue[next], { index: next, autoskip: true });
+}
+
+function previousTrack() {
+  if (!state.queue.length) return;
+  if (audio.currentTime > 4) {
+    audio.currentTime = 0;
+    return;
+  }
+  state.currentIndex = (state.currentIndex - 1 + state.queue.length) % state.queue.length;
+  playTrack(state.queue[state.currentIndex], { index: state.currentIndex });
+}
+
+function togglePlayback() {
+  if (!state.current) {
+    playMix(state.activeMix || "dna");
+    return;
+  }
+  if (audio.paused) audio.play(); else audio.pause();
+}
+
+function showView(name) {
+  $$(".view").forEach((view) => view.classList.remove("is-active"));
+  $(`#view-${name}`)?.classList.add("is-active");
+  $$(".nav-item").forEach((item) => item.classList.toggle("is-active", item.dataset.view === name));
+  window.scrollTo({ top: 0, behavior: "smooth" });
+  if (name === "favorites") renderFavorites();
+}
+
+function waveform() {
+  return "<div class=\"mix-visual\"><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>";
+}
+
+function renderMixes() {
+  $("#mix-grid").innerHTML = state.mixes.map((mix) => `
+    <article class="mix-card" data-mix="${mix.id}" style="--mix-color:${mix.accent}">
+      ${waveform()}
+      <h3>${mix.title}</h3>
+      <p>${mix.subtitle}</p>
+      <footer><span>${mix.tracks.length} señales</span><span class="mini-play">▶</span></footer>
+    </article>
+  `).join("");
+
+  $("#side-mixes").innerHTML = state.mixes.map((mix) => `
+    <button class="side-mix" data-mix="${mix.id}" style="--mix-color:${mix.accent}">${mix.title}</button>
+  `).join("");
+
+  $("#library-filters").innerHTML = state.mixes.map((mix, index) => `
+    <button class="filter-chip ${index === 0 ? "is-active" : ""}" data-library-mix="${mix.id}">${mix.title}</button>
+  `).join("");
+}
+
+function renderArtists() {
+  $("#top-artists").innerHTML = state.data.topArtists.slice(0, 10).map((artist) => `
+    <div class="artist-row">
+      <span class="rank">${String(artist.rank).padStart(2, "0")}</span>
+      <div><strong>${artist.artist}</strong><span>${formatNumber(artist.plays)} scrobbles</span></div>
+      <span>${((artist.plays / state.data.profile.totalScrobbles) * 100).toFixed(1)}%</span>
+      <button data-play-artist="${artist.artist}" aria-label="Reproducir ${artist.artist}">▶</button>
+    </div>
+  `).join("");
+}
+
+function renderTrackTable(container, tracks, listId) {
+  state.lists[listId] = tracks;
+  if (!tracks.length) {
+    container.innerHTML = `<div class="empty-state"><strong>Aún no hay canciones aquí.</strong>Añade archivos propios o guarda canciones durante la sesión.</div>`;
+    return;
+  }
+  container.innerHTML = tracks.map((track, index) => `
+    <div class="track-row">
+      <span class="track-number">${String(index + 1).padStart(2, "0")}</span>
+      <div class="track-main">
+        <div class="track-art">${track.artwork ? `<img src="${track.artwork}" alt="">` : (track.artist?.[0] || "S")}</div>
+        <div class="track-copy"><strong>${track.track}</strong><span>${track.artist}</span></div>
+      </div>
+      <span class="track-album">${track.album || "Catálogo personal"}</span>
+      <span class="track-plays">${track.plays ? `${formatNumber(track.plays)} plays` : track.sourceType === "search" ? "preview" : "local"}</span>
+      <button class="row-play" data-list="${listId}" data-index="${index}" aria-label="Reproducir ${track.track}">▶</button>
+    </div>
+  `).join("");
+}
+
+function renderLibrary(mixId = "dna") {
+  const mix = state.mixes.find((item) => item.id === mixId) || state.mixes[0];
+  renderTrackTable($("#library-tracks"), mix.tracks, `library-${mix.id}`);
+  $$("[data-library-mix]").forEach((chip) => chip.classList.toggle("is-active", chip.dataset.libraryMix === mix.id));
+}
+
+function renderBritish() {
+  const mix = state.mixes.find((item) => item.id === "british");
+  renderTrackTable($("#british-tracks"), mix.tracks.slice(0, 22), "british");
+  $("#british-ranking").innerHTML = state.data.britishArtists.slice(0, 15).map((artist) => `
+    <div class="rank-item"><b>${String(artist.rank).padStart(2, "0")}</b><strong>${artist.artist}</strong><span>${formatNumber(artist.plays)}</span></div>
+  `).join("");
+}
+
+function renderFavorites() {
+  renderTrackTable($("#favorite-tracks"), state.favorites, "favorites");
+}
+
+function renderQueue() {
+  const container = $("#queue-list");
+  if (!state.queue.length) {
+    container.innerHTML = `<div class="empty-state">Reproduce una mezcla para crear tu cola.</div>`;
+    return;
+  }
+  container.innerHTML = state.queue.map((track, index) => `
+    <div class="queue-item ${index === state.currentIndex ? "is-current" : ""}" data-queue-index="${index}">
+      <span>${String(index + 1).padStart(2, "0")}</span>
+      <div><strong>${track.track}</strong><span>${track.artist}</span></div>
+      <span>${index === state.currentIndex ? "●" : ""}</span>
+    </div>
+  `).join("");
+}
+
+async function searchMusic(query) {
+  showView("search");
+  $("#search-heading").textContent = `“${query}”`;
+  $("#search-results").innerHTML = `<div class="loading-row">Buscando previews oficiales…</div>`;
+  try {
+    const results = await queryItunes(query, 30);
+    const tracks = results.filter((item) => item.previewUrl).map((item) => ({
+      artist: item.artistName,
+      track: item.trackName,
+      album: item.collectionName,
+      previewUrl: item.previewUrl,
+      artwork: artworkUrl(item),
+      fullUrl: item.trackViewUrl || item.collectionViewUrl || "",
+      sourceType: "search",
+    }));
+    renderTrackTable($("#search-results"), tracks, "search");
+  } catch (error) {
+    $("#search-results").innerHTML = `<div class="empty-state"><strong>No fue posible consultar el catálogo.</strong>Revisa tu conexión e inténtalo de nuevo.</div>`;
+  }
+}
+
+function addLocalFiles(files) {
+  const localTracks = [...files].filter((file) => file.type.startsWith("audio/")).map((file) => ({
+    artist: "Archivo local",
+    track: file.name.replace(/\.[^.]+$/, ""),
+    album: "Tu dispositivo",
+    localUrl: URL.createObjectURL(file),
+    sourceType: "local",
+  }));
+  if (!localTracks.length) return;
+  state.queue = [...localTracks, ...state.queue];
+  state.currentIndex = 0;
+  renderQueue();
+  playTrack(localTracks[0], { queue: state.queue, index: 0 });
+  toast(`${localTracks.length} archivo${localTracks.length > 1 ? "s" : ""} añadido${localTracks.length > 1 ? "s" : ""}`);
+}
+
+function bindEvents() {
+  document.addEventListener("click", (event) => {
+    const nav = event.target.closest("[data-view], [data-view-target]");
+    if (nav) showView(nav.dataset.view || nav.dataset.viewTarget);
+
+    const mix = event.target.closest("[data-mix]");
+    if (mix) playMix(mix.dataset.mix);
+
+    const chip = event.target.closest("[data-library-mix]");
+    if (chip) renderLibrary(chip.dataset.libraryMix);
+
+    const play = event.target.closest("[data-list][data-index]");
+    if (play) {
+      const list = state.lists[play.dataset.list] || [];
+      const index = Number(play.dataset.index);
+      playTrack(list[index], { queue: list, index });
+    }
+
+    const queueItem = event.target.closest("[data-queue-index]");
+    if (queueItem) {
+      const index = Number(queueItem.dataset.queueIndex);
+      state.currentIndex = index;
+      playTrack(state.queue[index], { index });
+    }
+
+    const artistButton = event.target.closest("[data-play-artist]");
+    if (artistButton) {
+      const all = state.mixes.flatMap((item) => item.tracks);
+      const tracks = all.filter((item) => item.artist === artistButton.dataset.playArtist);
+      if (tracks.length) playTrack(tracks[0], { queue: tracks, index: 0 });
+      else searchMusic(artistButton.dataset.playArtist);
+    }
+
+    if (event.target.closest(".favorite-button")) toggleFavorite();
+  });
+
+  $("#play-dna").addEventListener("click", () => playMix("dna"));
+  $("#play-british").addEventListener("click", () => playMix("british"));
+  $("#hero-play").addEventListener("click", togglePlayback);
+  $("#main-play").addEventListener("click", togglePlayback);
+  $("#next-button").addEventListener("click", nextTrack);
+  $("#prev-button").addEventListener("click", previousTrack);
+  $("#shuffle-button").addEventListener("click", (event) => {
+    state.shuffle = !state.shuffle;
+    event.currentTarget.classList.toggle("is-active", state.shuffle);
+    toast(state.shuffle ? "Orden aleatorio activado" : "Orden aleatorio desactivado");
+  });
+  $("#repeat-button").addEventListener("click", (event) => {
+    state.repeat = !state.repeat;
+    event.currentTarget.classList.toggle("is-active", state.repeat);
+  });
+  $("#volume").addEventListener("input", (event) => { audio.volume = Number(event.target.value); });
+  $("#progress").addEventListener("input", (event) => {
+    if (audio.duration) audio.currentTime = (Number(event.target.value) / 100) * audio.duration;
+  });
+  $("#queue-button").addEventListener("click", () => $("#queue-drawer").classList.add("is-open"));
+  $("#close-queue").addEventListener("click", () => $("#queue-drawer").classList.remove("is-open"));
+  $("#profile-button").addEventListener("click", () => $("#profile-popover").classList.toggle("is-open"));
+  $("#local-files").addEventListener("change", (event) => addLocalFiles(event.target.files));
+  $("#search-form").addEventListener("submit", (event) => {
+    event.preventDefault();
+    const query = $("#search-input").value.trim();
+    if (query) searchMusic(query);
+  });
+
+  document.addEventListener("keydown", (event) => {
+    if (event.code === "Space" && !event.target.matches("input, textarea, button")) {
+      event.preventDefault();
+      togglePlayback();
+    }
+  });
+
+  audio.addEventListener("play", () => setPlayState(true));
+  audio.addEventListener("pause", () => setPlayState(false));
+  audio.addEventListener("ended", nextTrack);
+  audio.addEventListener("timeupdate", () => {
+    $("#current-time").textContent = formatTime(audio.currentTime);
+    $("#duration").textContent = formatTime(audio.duration);
+    $("#progress").value = audio.duration ? (audio.currentTime / audio.duration) * 100 : 0;
+  });
+  audio.addEventListener("error", () => toast("Esta fuente dejó de estar disponible"));
+}
+
+async function init() {
+  try {
+    const response = await fetch("data/profile.json");
+    state.data = await response.json();
+    state.mixes = state.data.mixes;
+    renderMixes();
+    renderArtists();
+    renderLibrary();
+    renderBritish();
+    renderFavorites();
+    renderQueue();
+    bindEvents();
+  } catch (error) {
+    console.error(error);
+    document.body.innerHTML = `<main style="padding:10vw;color:white"><h1>No pude cargar tu perfil musical.</h1><p>Comprueba que data/profile.json esté disponible.</p></main>`;
+  }
+}
+
+init();

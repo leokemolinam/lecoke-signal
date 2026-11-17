@@ -1,0 +1,209 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#090b10">
+  <meta name="description" content="Radio personal construida con el historial de Last.fm de lecoke.">
+  <title>signal / lecoke</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="ambient ambient-a"></div>
+  <div class="ambient ambient-b"></div>
+
+  <div class="app-shell">
+    <aside class="sidebar" aria-label="Navegación principal">
+      <a class="brand" href="#home" aria-label="Inicio">
+        <span class="brand-mark" aria-hidden="true"><i></i><i></i><i></i><i></i></span>
+        <span>signal<span class="brand-slash">/</span></span>
+      </a>
+
+      <nav class="main-nav">
+        <button class="nav-item is-active" data-view="home"><span>⌂</span>Inicio</button>
+        <button class="nav-item" data-view="library"><span>◫</span>Tu biblioteca</button>
+        <button class="nav-item" data-view="british"><span>◈</span>British signal</button>
+        <button class="nav-item" data-view="favorites"><span>♡</span>Favoritos</button>
+      </nav>
+
+      <div class="sidebar-section">
+        <p class="eyebrow">Tus mezclas</p>
+        <div id="side-mixes" class="side-mixes"></div>
+      </div>
+
+      <div class="privacy-note">
+        <span class="status-dot"></span>
+        <div>
+          <strong>Modo privado</strong>
+          <small>Tu cola y favoritos viven en este navegador.</small>
+        </div>
+      </div>
+    </aside>
+
+    <main class="main-content" id="main-content">
+      <header class="topbar">
+        <form class="search" id="search-form" role="search">
+          <span aria-hidden="true">⌕</span>
+          <input id="search-input" type="search" placeholder="Busca artista o canción" autocomplete="off" aria-label="Buscar música">
+          <kbd>Enter</kbd>
+        </form>
+        <label class="upload-button" for="local-files" title="Añadir archivos de audio propios">
+          <span>＋</span> Añadir música
+        </label>
+        <input id="local-files" type="file" accept="audio/*" multiple hidden>
+        <button class="avatar" id="profile-button" aria-label="Ver perfil">OK</button>
+      </header>
+
+      <section class="view is-active" id="view-home">
+        <div class="hero">
+          <div class="hero-copy">
+            <p class="eyebrow"><span class="live-dot"></span>Radio personal</p>
+            <h1>Tu historia,<br><em>en movimiento.</em></h1>
+            <p class="hero-description">Una sesión continua construida con 57.556 scrobbles. Sin anuncios insertados por esta app. Tú eliges la señal.</p>
+            <div class="hero-actions">
+              <button class="primary-button" id="play-dna"><span>▶</span> Reproducir tu ADN</button>
+              <button class="ghost-button" data-view-target="library">Explorar biblioteca</button>
+            </div>
+            <div class="hero-stats" aria-label="Resumen de Last.fm">
+              <div><strong>57.556</strong><span>scrobbles</span></div>
+              <div><strong>2.639</strong><span>artistas</span></div>
+              <div><strong>17 años</strong><span>de señal</span></div>
+            </div>
+          </div>
+
+          <div class="hero-player-card" id="hero-player-card">
+            <div class="signal-lines" aria-hidden="true"></div>
+            <div class="hero-artwork" id="hero-artwork">
+              <div class="artwork-placeholder"><span>S</span></div>
+              <button class="hero-play" id="hero-play" aria-label="Reproducir o pausar">▶</button>
+            </div>
+            <div class="hero-track-meta">
+              <div>
+                <p class="eyebrow" id="hero-source">LISTO PARA EMPEZAR</p>
+                <h2 id="hero-title">Tu ADN musical</h2>
+                <p id="hero-artist">Basado en Last.fm / lecoke</p>
+              </div>
+              <button class="icon-button favorite-button" aria-label="Añadir a favoritos">♡</button>
+            </div>
+          </div>
+        </div>
+
+        <section class="section-block">
+          <div class="section-heading">
+            <div><p class="eyebrow">Escucha por estado</p><h2>Mezclas para ti</h2></div>
+            <button class="text-button" data-view-target="library">Ver toda la biblioteca →</button>
+          </div>
+          <div class="mix-grid" id="mix-grid"></div>
+        </section>
+
+        <section class="section-block split-section">
+          <div>
+            <div class="section-heading compact">
+              <div><p class="eyebrow">Afinidad histórica</p><h2>Tu top de artistas</h2></div>
+            </div>
+            <div class="artist-list" id="top-artists"></div>
+          </div>
+          <aside class="insight-card">
+            <p class="eyebrow">Señal detectada</p>
+            <div class="insight-number">22,6%</div>
+            <h3>de tu escucha tiene origen británico</h3>
+            <p>Tu archivo conecta indie rock, synth-pop, post-punk y una nueva etapa electrónica en 2026.</p>
+            <button class="ghost-button full" data-view-target="british">Abrir British signal</button>
+          </aside>
+        </section>
+      </section>
+
+      <section class="view" id="view-library">
+        <div class="page-heading">
+          <p class="eyebrow">57.556 scrobbles procesados</p>
+          <h1>Tu biblioteca</h1>
+          <p>Las canciones que más han definido tu escucha, listas para resolver una fuente reproducible.</p>
+        </div>
+        <div class="filter-row" id="library-filters"></div>
+        <div class="track-table" id="library-tracks"></div>
+      </section>
+
+      <section class="view" id="view-british">
+        <div class="page-heading british-heading">
+          <p class="eyebrow">British signal</p>
+          <h1>Del indie de 2009<br>al pulso electrónico de 2026.</h1>
+          <p>Una lectura reproducible de tus 118 artistas británicos más relevantes.</p>
+          <button class="primary-button" id="play-british"><span>▶</span> Reproducir señal</button>
+        </div>
+        <div class="british-layout">
+          <div class="track-table" id="british-tracks"></div>
+          <div class="ranking-panel">
+            <p class="eyebrow">Ranking británico</p>
+            <div id="british-ranking"></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="view" id="view-favorites">
+        <div class="page-heading">
+          <p class="eyebrow">Guardado en este navegador</p>
+          <h1>Tus favoritos</h1>
+          <p>Las canciones que marcaste durante tus sesiones en signal/.</p>
+        </div>
+        <div class="track-table" id="favorite-tracks"></div>
+      </section>
+
+      <section class="view" id="view-search">
+        <div class="page-heading">
+          <p class="eyebrow">Catálogo externo</p>
+          <h1 id="search-heading">Resultados</h1>
+          <p>Previews oficiales encontrados por artista y canción.</p>
+        </div>
+        <div class="track-table" id="search-results"></div>
+      </section>
+    </main>
+  </div>
+
+  <div class="player-bar" id="player-bar" aria-label="Reproductor">
+    <div class="player-track">
+      <div class="player-thumb" id="player-thumb"><span>S</span></div>
+      <div class="player-copy">
+        <strong id="player-title">Selecciona una mezcla</strong>
+        <span id="player-artist">signal / lecoke</span>
+      </div>
+      <button class="icon-button favorite-button" aria-label="Añadir a favoritos">♡</button>
+    </div>
+    <div class="player-center">
+      <div class="player-controls">
+        <button class="control-button" id="shuffle-button" aria-label="Orden aleatorio">⌘</button>
+        <button class="control-button" id="prev-button" aria-label="Anterior">|◀</button>
+        <button class="main-play" id="main-play" aria-label="Reproducir o pausar">▶</button>
+        <button class="control-button" id="next-button" aria-label="Siguiente">▶|</button>
+        <button class="control-button" id="repeat-button" aria-label="Repetir">↻</button>
+      </div>
+      <div class="progress-row">
+        <span id="current-time">0:00</span>
+        <input id="progress" type="range" min="0" max="100" value="0" aria-label="Progreso">
+        <span id="duration">0:00</span>
+      </div>
+    </div>
+    <div class="player-actions">
+      <span class="source-badge" id="source-badge">SIN PUBLICIDAD</span>
+      <button class="control-button" id="queue-button" aria-label="Ver cola">☷</button>
+      <span aria-hidden="true">◖</span>
+      <input id="volume" type="range" min="0" max="1" step="0.01" value="0.8" aria-label="Volumen">
+      <a id="full-track-link" class="external-link is-disabled" target="_blank" rel="noopener">Abrir completa ↗</a>
+    </div>
+  </div>
+
+  <aside class="queue-drawer" id="queue-drawer" aria-label="Cola de reproducción">
+    <div class="drawer-heading"><div><p class="eyebrow">A continuación</p><h2>Tu cola</h2></div><button id="close-queue" class="icon-button">×</button></div>
+    <div id="queue-list"></div>
+  </aside>
+
+  <div class="profile-popover" id="profile-popover">
+    <strong>Oke / lecoke</strong>
+    <span>Last.fm desde 2009</span>
+    <small>Los datos de afinidad están integrados de forma estática. Las búsquedas se consultan bajo demanda.</small>
+  </div>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <script src="app.js" defer></script>
+</body>
+</html>
