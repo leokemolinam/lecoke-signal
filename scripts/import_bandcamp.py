@@ -156,7 +156,19 @@ def fetch_discover(tag: str) -> dict:
 
 
 def main() -> None:
-    username = sys.argv[1] if len(sys.argv) > 1 else "okefm"
+    args = [argument for argument in sys.argv[1:] if not argument.startswith("--")]
+    username = args[0] if args else "okefm"
+    charts_only = "--charts-only" in sys.argv
+    if charts_only:
+        if not OUTPUT.exists():
+            raise RuntimeError("No existe bandcamp.json para actualizar solo los charts")
+        payload = json.loads(OUTPUT.read_text(encoding="utf-8"))
+        charts = {tag: fetch_discover(tag) for tag in ("house", "techno")}
+        payload["charts"] = charts
+        OUTPUT.write_text(json.dumps(payload, ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
+        print(f"{len(charts['house']['items'])} house + {len(charts['techno']['items'])} techno -> {OUTPUT}")
+        return
+
     profile = load_profile(username)
     collection = fetch_all(profile, "collection")
     wishlist = fetch_all(profile, "wishlist")

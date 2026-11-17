@@ -10,7 +10,7 @@ Reproductor web personal construido a partir del historial público de Last.fm d
 - Reproducción completa mediante los reproductores oficiales de Bandcamp cuando el artista la habilita.
 - “Dig mode” aleatorio para descubrir sonidos y referencias de house/techno.
 - Rankings internos de House y Techno basados en la señal pública `top` de Bandcamp Discover.
-- Actualización automática de colección, wishlist y charts cada 12 horas.
+- Actualización automática de los charts House y Techno cada 12 horas.
 - Búsqueda en Bandcamp primero y previews oficiales de Apple/iTunes como respaldo.
 - Carga de archivos de audio propios para reproducción completa en el navegador.
 - Cola, favoritos, controles de volumen, reproducción aleatoria y repetición.

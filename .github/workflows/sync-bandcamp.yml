@@ -24,8 +24,8 @@ jobs:
         with:
           python-version: "3.13"
 
-      - name: Refresh collection and charts
-        run: python scripts/import_bandcamp.py okefm
+      - name: Refresh House and Techno charts
+        run: python scripts/import_bandcamp.py okefm --charts-only
 
       - name: Commit updated data
         shell: bash
