@@ -144,7 +144,7 @@
         <div class="page-heading bandcamp-heading">
           <p class="eyebrow">Bandcamp / okefm</p>
           <h1>Tu colección,<br>en versión completa.</h1>
-          <p>Una mesa de digging para tu etapa como DJ de house y techno. Reproductores oficiales, wishlist y hallazgos aleatorios en un mismo lugar.</p>
+          <p>Una mesa de digging para tu etapa como DJ de house y techno. Reproducción continua entre pistas y lanzamientos, wishlist oficial y hallazgos aleatorios en un mismo lugar.</p>
           <div class="hero-actions">
             <button class="primary-button" id="dig-now"><span>▶</span> Iniciar Dig mode</button>
             <button class="ghost-button" data-bandcamp-mode="house">Explorar house</button>
@@ -161,11 +161,15 @@
           <div class="bandcamp-player-shell" id="bandcamp-player-shell">
             <div class="bandcamp-player-empty" id="bandcamp-player-empty">
               <span>▰</span>
-              <div><strong>Elige un lanzamiento</strong><small>Aquí aparecerá el reproductor oficial de Bandcamp.</small></div>
+              <div><strong>Elige un lanzamiento</strong><small>Signal intentará crear una cola continua con los streams públicos habilitados por el artista.</small></div>
             </div>
             <div class="bandcamp-player-meta" id="bandcamp-player-meta" hidden>
-              <div><p class="eyebrow">REPRODUCCIÓN OFICIAL</p><strong id="bandcamp-now-title"></strong><span id="bandcamp-now-artist"></span></div>
-              <div class="bandcamp-player-links"><button class="text-button" id="dig-next">Otro hallazgo →</button><a id="bandcamp-now-link" target="_blank" rel="noopener">Abrir en Bandcamp ↗</a></div>
+              <div><p class="eyebrow" id="bandcamp-player-label">BANDCAMP · CARGANDO COLA</p><strong id="bandcamp-now-title"></strong><span id="bandcamp-now-artist"></span></div>
+              <div class="bandcamp-player-links"><button class="text-button" id="dig-next">Siguiente lanzamiento →</button><a id="bandcamp-now-link" target="_blank" rel="noopener">Abrir en Bandcamp ↗</a></div>
+            </div>
+            <div class="bandcamp-native-player" id="bandcamp-native-player" hidden>
+              <div class="bandcamp-native-status"><span class="live-dot"></span><strong>Continuous crate</strong><span id="bandcamp-native-status">Preparando pistas…</span></div>
+              <div class="bandcamp-native-tracklist" id="bandcamp-native-tracklist"></div>
             </div>
             <iframe id="bandcamp-player" title="Reproductor oficial de Bandcamp" allow="autoplay; encrypted-media" loading="lazy" hidden></iframe>
           </div>
@@ -246,6 +250,22 @@
     <strong>Oke / lecoke</strong>
     <span>Last.fm desde 2009</span>
     <small>Last.fm alimenta la afinidad. Bandcamp aporta tu colección pública y sus reproductores oficiales.</small>
+  </div>
+
+  <div class="bandcamp-wishlist-modal" id="bandcamp-wishlist-modal" hidden>
+    <div class="wishlist-backdrop" data-close-wishlist></div>
+    <section class="wishlist-dialog" role="dialog" aria-modal="true" aria-labelledby="wishlist-title">
+      <header>
+        <div><p class="eyebrow">BANDCAMP OFICIAL</p><h2 id="wishlist-title">Guardar en tu wishlist</h2></div>
+        <button class="icon-button" data-close-wishlist aria-label="Cerrar">×</button>
+      </header>
+      <p>Dentro del panel oficial, pulsa el corazón de Bandcamp. Esa confirmación es la que registra el lanzamiento en tu cuenta <strong>okefm</strong>.</p>
+      <iframe id="bandcamp-wishlist-frame" title="Panel oficial de wishlist de Bandcamp"></iframe>
+      <footer>
+        <a id="bandcamp-wishlist-link" class="ghost-button" target="_blank" rel="noopener">Abrir en otra pestaña ↗</a>
+        <button id="confirm-bandcamp-wishlist" class="primary-button">Ya confirmé en Bandcamp ♥</button>
+      </footer>
+    </section>
   </div>
 
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
