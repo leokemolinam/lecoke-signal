@@ -6,10 +6,10 @@ Reproductor web personal construido a partir del historial público de Last.fm d
 
 - 57.556 scrobbles y 2.639 artistas convertidos en mezclas personales.
 - Señales dedicadas a tu ADN musical, artistas británicos, electrónica 2026 y archivo 2009.
-- 124 lanzamientos de la colección y 111 de la wishlist pública de Bandcamp `okefm`.
+- 124 lanzamientos de la colección y 112 de la wishlist pública de Bandcamp `okefm`.
 - Reproducción completa mediante los reproductores oficiales de Bandcamp cuando el artista la habilita.
 - Cola continua de streams públicos habilitados por el artista: sigue la siguiente pista del álbum y después el siguiente lanzamiento.
-- Corazón de Bandcamp con confirmación dentro del panel oficial para registrar el lanzamiento en la wishlist de `okefm`.
+- Corazón de Bandcamp que abre la página oficial como contexto principal para usar la sesión real de `okefm`; la app sólo muestra el corazón activo cuando el lanzamiento aparece en la wishlist pública.
 - “Dig mode” aleatorio para descubrir sonidos y referencias de house/techno.
 - Rankings internos de House y Techno basados en la señal pública `top` de Bandcamp Discover.
 - Actualizador reproducible para colección, wishlist y charts de Discover.
@@ -32,7 +32,7 @@ Haz doble clic en `START_SIGNAL.cmd`, o ejecuta:
 python scripts\serve.py
 ```
 
-El servidor abre `http://127.0.0.1:4188` y habilita la cola continua estable sin guardar cookies ni credenciales de Bandcamp.
+El servidor abre `http://127.0.0.1:4188`, habilita la cola continua y permite volver a sincronizar la wishlist pública desde el botón de la app, sin guardar cookies ni credenciales de Bandcamp.
 
 Para volver a sincronizar la colección pública de Bandcamp:
 

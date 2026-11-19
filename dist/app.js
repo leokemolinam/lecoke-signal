@@ -18,8 +18,6 @@ const state = {
   bandcampReleaseIndex: -1,
   bandcampNative: false,
   bandcampTrackCache: new Map(),
-  bandcampLikes: JSON.parse(localStorage.getItem("signal-bandcamp-likes") || "[]"),
-  pendingBandcampWish: null,
 };
 
 const audio = new Audio();
@@ -449,7 +447,7 @@ function renderBandcamp(mode = state.bandcampMode, query = "") {
       <div class="bandcamp-card-art">
         ${item.artwork ? `<img src="${escapeHtml(item.artwork)}" alt="" loading="lazy">` : ""}
         <span class="bandcamp-card-badge">${escapeHtml(bandcampSourceLabel(item))}</span>
-        <button class="bandcamp-card-heart ${isBandcampWishlisted(item) ? "is-active" : ""}" data-bandcamp-heart="${escapeHtml(item.id)}" aria-label="Guardar ${escapeHtml(item.title)} en la wishlist de Bandcamp">${isBandcampWishlisted(item) ? "♥" : "♡"}</button>
+        <button class="bandcamp-card-heart ${isBandcampWishlisted(item) ? "is-active" : ""}" data-bandcamp-heart="${escapeHtml(item.id)}" aria-label="Abrir Bandcamp para guardar ${escapeHtml(item.title)}">${isBandcampWishlisted(item) ? "♥" : "♡"}</button>
         <button class="bandcamp-card-play" data-bandcamp-id="${escapeHtml(item.id)}" aria-label="Escuchar ${escapeHtml(item.title)} completo">▶</button>
       </div>
       <div class="bandcamp-card-copy">
@@ -462,22 +460,18 @@ function renderBandcamp(mode = state.bandcampMode, query = "") {
 }
 
 function isBandcampWishlisted(item) {
-  return item?.source === "wishlist" || state.bandcampLikes.includes(item?.id);
-}
-
-function persistBandcampLikes() {
-  localStorage.setItem("signal-bandcamp-likes", JSON.stringify(state.bandcampLikes));
+  return item?.source === "wishlist";
 }
 
 function openBandcampWishlist(item) {
   if (!item?.url) return;
-  state.pendingBandcampWish = item;
   const target = `${item.url.split("#")[0]}#collect-anchor`;
   $("#bandcamp-wishlist-frame").src = target;
   $("#bandcamp-wishlist-link").href = target;
   $("#wishlist-title").textContent = `Guardar “${item.title}”`;
   $("#bandcamp-wishlist-modal").hidden = false;
   document.body.style.overflow = "hidden";
+  window.open(target, "_blank", "noopener,noreferrer");
 }
 
 function closeBandcampWishlist() {
@@ -486,13 +480,29 @@ function closeBandcampWishlist() {
   document.body.style.overflow = "";
 }
 
-function confirmBandcampWishlist() {
-  const item = state.pendingBandcampWish;
-  if (item && !state.bandcampLikes.includes(item.id)) state.bandcampLikes.push(item.id);
-  persistBandcampLikes();
-  closeBandcampWishlist();
-  renderBandcamp(state.bandcampMode);
-  toast("Confirmación guardada en esta sesión");
+async function syncBandcampWishlist() {
+  const button = $("#sync-bandcamp-wishlist");
+  const previousLabel = button.textContent;
+  button.disabled = true;
+  button.textContent = "Sincronizando…";
+  try {
+    const response = await fetch("/api/bandcamp-wishlist");
+    if (!response.ok || !response.headers.get("content-type")?.includes("application/json")) throw new Error("La sincronización en vivo requiere el iniciador local");
+    const payload = await response.json();
+    if (!Array.isArray(payload.wishlist)) throw new Error("Bandcamp no devolvió la wishlist");
+    state.bandcamp.wishlist = payload.wishlist;
+    state.bandcamp.profile.wishlistCount = payload.wishlistCount;
+    $("#bandcamp-wishlist-count").textContent = formatNumber(payload.wishlistCount);
+    renderBandcamp(state.bandcampMode);
+    localStorage.removeItem("signal-bandcamp-likes");
+    toast(`Wishlist sincronizada: ${payload.wishlistCount} lanzamientos`);
+  } catch (error) {
+    console.warn(error);
+    toast("Para sincronizar en vivo, abre la app con START_SIGNAL.cmd");
+  } finally {
+    button.disabled = false;
+    button.textContent = previousLabel;
+  }
 }
 
 async function fetchBandcampReleaseTracks(item) {
@@ -785,7 +795,7 @@ function bindEvents() {
   $("#play-british").addEventListener("click", () => playMix("british"));
   $("#dig-now").addEventListener("click", digNext);
   $("#dig-next").addEventListener("click", () => state.currentBandcamp ? advanceBandcampRelease(1) : digNext());
-  $("#confirm-bandcamp-wishlist").addEventListener("click", confirmBandcampWishlist);
+  $("#sync-bandcamp-wishlist").addEventListener("click", syncBandcampWishlist);
   $("#hero-play").addEventListener("click", togglePlayback);
   $("#main-play").addEventListener("click", togglePlayback);
   $("#next-button").addEventListener("click", nextTrack);

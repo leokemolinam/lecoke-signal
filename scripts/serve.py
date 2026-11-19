@@ -14,6 +14,8 @@ import webbrowser
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
+from import_bandcamp import compact, fetch_all, load_profile
+
 
 ROOT = Path(__file__).resolve().parents[1]
 DIST = ROOT / "dist"
@@ -68,6 +70,19 @@ class SignalHandler(SimpleHTTPRequestHandler):
 
     def do_GET(self) -> None:  # noqa: N802 - API de http.server
         parsed = urllib.parse.urlparse(self.path)
+        if parsed.path == "/api/bandcamp-wishlist":
+            try:
+                profile = load_profile("okefm")
+                wishlist = fetch_all(profile, "wishlist")
+                self.send_json(
+                    {
+                        "wishlistCount": len(wishlist),
+                        "wishlist": [compact(item, "wishlist") for item in wishlist],
+                    }
+                )
+            except Exception as error:
+                self.send_json({"error": str(error)}, 502)
+            return
         if parsed.path != "/api/bandcamp-release":
             super().do_GET()
             return
