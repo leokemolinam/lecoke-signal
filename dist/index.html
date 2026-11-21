@@ -1,276 +1,149 @@
 <!doctype html>
 <html lang="es">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="theme-color" content="#090b10">
-  <meta name="description" content="Radio personal construida con Last.fm y la colección de Bandcamp de okefm.">
-  <title>signal / lecoke</title>
-  <link rel="stylesheet" href="styles.css">
-</head>
-<body>
-  <div class="ambient ambient-a"></div>
-  <div class="ambient ambient-b"></div>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#0a0a0a" />
+    <meta name="description" content="Digging dashboard de House y Techno con señales de Bandcamp y Beatport." />
+    <title>signal / dig crate</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <div class="noise" aria-hidden="true"></div>
+    <header class="topbar">
+      <a class="brand" href="#top" aria-label="signal, inicio"><span class="brand-mark">s/</span><span>signal</span></a>
+      <div class="topbar-copy"><span class="live-dot" aria-hidden="true"></span><span>digging intelligence</span></div>
+      <button class="crate-trigger" id="crate-trigger" type="button" aria-controls="crate-panel">
+        <span>Mi crate</span><span class="crate-count" id="crate-count">0</span>
+      </button>
+    </header>
 
-  <div class="app-shell">
-    <aside class="sidebar" aria-label="Navegación principal">
-      <a class="brand" href="#home" aria-label="Inicio">
-        <span class="brand-mark" aria-hidden="true"><i></i><i></i><i></i><i></i></span>
-        <span>signal<span class="brand-slash">/</span></span>
-      </a>
-
-      <nav class="main-nav">
-        <button class="nav-item is-active" data-view="home"><span>⌂</span>Inicio</button>
-        <button class="nav-item" data-view="library"><span>◫</span>Tu biblioteca</button>
-        <button class="nav-item" data-view="bandcamp"><span>▰</span>Bandcamp</button>
-        <button class="nav-item" data-view="british"><span>◈</span>British signal</button>
-        <button class="nav-item" data-view="favorites"><span>♡</span>Favoritos</button>
-      </nav>
-
-      <div class="sidebar-section">
-        <p class="eyebrow">Tus mezclas</p>
-        <div id="side-mixes" class="side-mixes"></div>
-      </div>
-
-      <div class="privacy-note">
-        <span class="status-dot"></span>
-        <div>
-          <strong>Modo privado</strong>
-          <small>Tu cola y favoritos viven en este navegador.</small>
-        </div>
-      </div>
-    </aside>
-
-    <main class="main-content" id="main-content">
-      <header class="topbar">
-        <form class="search" id="search-form" role="search">
-          <span aria-hidden="true">⌕</span>
-          <input id="search-input" type="search" placeholder="Busca artista o canción" autocomplete="off" aria-label="Buscar música">
-          <kbd>Enter</kbd>
-        </form>
-        <label class="upload-button" for="local-files" title="Añadir archivos de audio propios">
-          <span>＋</span> Añadir música
-        </label>
-        <input id="local-files" type="file" accept="audio/*" multiple hidden>
-        <button class="avatar" id="profile-button" aria-label="Ver perfil">OK</button>
-      </header>
-
-      <section class="view is-active" id="view-home">
-        <div class="hero">
-          <div class="hero-copy">
-            <p class="eyebrow"><span class="live-dot"></span>Radio personal</p>
-            <h1>Tu historia,<br><em>en movimiento.</em></h1>
-            <p class="hero-description">57.556 scrobbles conectados con 124 lanzamientos de tu colección Bandcamp. Reproducción completa cuando el artista la habilita.</p>
-            <div class="hero-actions">
-              <button class="primary-button" data-view-target="bandcamp"><span>▶</span> Escuchar colección completa</button>
-              <button class="ghost-button" id="play-dna">Señal Last.fm</button>
-            </div>
-            <div class="hero-stats" aria-label="Resumen de Last.fm">
-              <div><strong>57.556</strong><span>scrobbles</span></div>
-              <div><strong>2.639</strong><span>artistas</span></div>
-              <div><strong>17 años</strong><span>de señal</span></div>
-            </div>
-          </div>
-
-          <div class="hero-player-card" id="hero-player-card">
-            <div class="signal-lines" aria-hidden="true"></div>
-            <div class="hero-artwork" id="hero-artwork">
-              <div class="artwork-placeholder"><span>S</span></div>
-              <button class="hero-play" id="hero-play" aria-label="Reproducir o pausar">▶</button>
-            </div>
-            <div class="hero-track-meta">
-              <div>
-                <p class="eyebrow" id="hero-source">LISTO PARA EMPEZAR</p>
-                <h2 id="hero-title">Tu ADN musical</h2>
-                <p id="hero-artist">Basado en Last.fm / lecoke</p>
-              </div>
-              <button class="icon-button favorite-button" aria-label="Añadir a favoritos">♡</button>
-            </div>
-          </div>
-        </div>
-
-        <section class="section-block">
-          <div class="section-heading">
-            <div><p class="eyebrow">Escucha por estado</p><h2>Mezclas para ti</h2></div>
-            <button class="text-button" data-view-target="library">Ver toda la biblioteca →</button>
-          </div>
-          <div class="mix-grid" id="mix-grid"></div>
-        </section>
-
-        <section class="section-block split-section">
+    <main id="top">
+      <section class="hero shell">
+        <div class="hero-kicker">BANDCAMP × BEATPORT / HOUSE × TECHNO</div>
+        <div class="hero-grid">
           <div>
-            <div class="section-heading compact">
-              <div><p class="eyebrow">Afinidad histórica</p><h2>Tu top de artistas</h2></div>
+            <h1>Compra mejor.<br /><span>Encuentra el próximo track.</span></h1>
+            <p class="hero-lead">Un radar de música para DJ: combina la señal <em>best-selling</em> de Bandcamp con los rankings Top 100 de Beatport, muestra el precio y convierte cada corazón en un presupuesto real.</p>
+          </div>
+          <div class="hero-budget" aria-live="polite">
+            <span>Presupuesto del crate</span>
+            <strong id="hero-total">$0.00</strong>
+            <small id="hero-total-detail">0 pistas seleccionadas</small>
+          </div>
+        </div>
+      </section>
+
+      <section class="control-deck shell" aria-label="Filtros de recomendaciones">
+        <div class="filter-group">
+          <span class="filter-label">Tienda</span>
+          <div class="segmented" id="store-filter">
+            <button class="is-active" data-value="all" type="button">Todas</button>
+            <button data-value="bandcamp" type="button">Bandcamp</button>
+            <button data-value="beatport" type="button">Beatport</button>
+          </div>
+        </div>
+        <div class="filter-group">
+          <span class="filter-label">Género</span>
+          <div class="segmented" id="genre-filter">
+            <button class="is-active" data-value="all" type="button">Todos</button>
+            <button data-value="house" type="button">House</button>
+            <button data-value="techno" type="button">Techno</button>
+          </div>
+        </div>
+        <label class="sort-control">
+          <span class="filter-label">Orden</span>
+          <select id="sort-select">
+            <option value="signal">Más fuertes</option>
+            <option value="price-asc">Precio: menor</option>
+            <option value="price-desc">Precio: mayor</option>
+            <option value="bpm">BPM: mayor</option>
+          </select>
+        </label>
+      </section>
+
+      <section class="stats shell" aria-label="Resumen de datos">
+        <article><span>En radar</span><strong id="stat-count">—</strong><small>recomendaciones visibles</small></article>
+        <article><span>Precio medio USD</span><strong id="stat-price">—</strong><small>sólo items publicados en USD</small></article>
+        <article><span>Ventana BPM</span><strong id="stat-bpm">—</strong><small>metadatos Beatport</small></article>
+        <article><span>Actualizado</span><strong id="stat-updated">—</strong><small>snapshot de mercado</small></article>
+      </section>
+
+      <section class="workspace shell">
+        <div class="feed-column">
+          <div class="section-heading">
+            <div><span class="eyebrow">RECOMMENDATION FEED</span><h2>Señales para el crate</h2></div>
+            <p id="results-copy">Cargando señales…</p>
+          </div>
+          <div class="recommendation-grid" id="recommendation-grid" aria-live="polite"></div>
+        </div>
+        <aside class="insight-column">
+          <div class="insight-card lime-card">
+            <span class="eyebrow">SIGNAL ANALYSIS</span>
+            <h3 id="insight-title">Qué se está moviendo</h3>
+            <p id="insight-copy">Analizando el snapshot actual…</p>
+            <div class="mini-bars" id="genre-bars"></div>
+          </div>
+          <div class="insight-card">
+            <div class="insight-card-title"><span class="eyebrow">PRICE MAP</span><span id="priced-count">—</span></div>
+            <div class="price-map" id="price-map"></div>
+          </div>
+          <div class="method-card">
+            <button class="method-toggle" id="method-toggle" type="button" aria-expanded="false">
+              <span>Cómo se calcula la señal</span><span class="plus" aria-hidden="true">+</span>
+            </button>
+            <div class="method-content" id="method-content" hidden>
+              <p id="method-bandcamp"></p><p id="method-beatport"></p><p id="method-prices"></p>
             </div>
-            <div class="artist-list" id="top-artists"></div>
           </div>
-          <aside class="insight-card">
-            <p class="eyebrow">Señal detectada</p>
-            <div class="insight-number">22,6%</div>
-            <h3>de tu escucha tiene origen británico</h3>
-            <p>Tu archivo conecta indie rock, synth-pop, post-punk y una nueva etapa electrónica en 2026.</p>
-            <button class="ghost-button full" data-view-target="british">Abrir British signal</button>
-          </aside>
-        </section>
-      </section>
-
-      <section class="view" id="view-library">
-        <div class="page-heading">
-          <p class="eyebrow">57.556 scrobbles procesados</p>
-          <h1>Tu biblioteca</h1>
-          <p>Las canciones que más han definido tu escucha, listas para resolver una fuente reproducible.</p>
-        </div>
-        <div class="filter-row" id="library-filters"></div>
-        <div class="track-table" id="library-tracks"></div>
-      </section>
-
-      <section class="view" id="view-british">
-        <div class="page-heading british-heading">
-          <p class="eyebrow">British signal</p>
-          <h1>Del indie de 2009<br>al pulso electrónico de 2026.</h1>
-          <p>Una lectura reproducible de tus 118 artistas británicos más relevantes.</p>
-          <button class="primary-button" id="play-british"><span>▶</span> Reproducir señal</button>
-        </div>
-        <div class="british-layout">
-          <div class="track-table" id="british-tracks"></div>
-          <div class="ranking-panel">
-            <p class="eyebrow">Ranking británico</p>
-            <div id="british-ranking"></div>
-          </div>
-        </div>
-      </section>
-
-      <section class="view" id="view-bandcamp">
-        <div class="page-heading bandcamp-heading">
-          <p class="eyebrow">Bandcamp / okefm</p>
-          <h1>Tu colección,<br>en versión completa.</h1>
-          <p>Una mesa de digging para tu etapa como DJ de house y techno. Reproducción continua entre pistas y lanzamientos, wishlist oficial y hallazgos aleatorios en un mismo lugar.</p>
-          <div class="hero-actions">
-            <button class="primary-button" id="dig-now"><span>▶</span> Iniciar Dig mode</button>
-            <button class="ghost-button" data-bandcamp-mode="house">Explorar house</button>
-            <button class="ghost-button" data-bandcamp-mode="techno">Explorar techno</button>
-            <button class="ghost-button" id="sync-bandcamp-wishlist">Sincronizar wishlist</button>
-          </div>
-        </div>
-
-        <div class="bandcamp-overview">
-          <div class="bandcamp-stats">
-            <div><strong id="bandcamp-collection-count">124</strong><span>en tu colección</span></div>
-            <div><strong id="bandcamp-wishlist-count">112</strong><span>en wishlist</span></div>
-            <div><strong id="bandcamp-genre">Electronic</strong><span>género favorito</span></div>
-          </div>
-          <div class="bandcamp-player-shell" id="bandcamp-player-shell">
-            <div class="bandcamp-player-empty" id="bandcamp-player-empty">
-              <span>▰</span>
-              <div><strong>Elige un lanzamiento</strong><small>Signal intentará crear una cola continua con los streams públicos habilitados por el artista.</small></div>
-            </div>
-            <div class="bandcamp-player-meta" id="bandcamp-player-meta" hidden>
-              <div><p class="eyebrow" id="bandcamp-player-label">BANDCAMP · CARGANDO COLA</p><strong id="bandcamp-now-title"></strong><span id="bandcamp-now-artist"></span></div>
-              <div class="bandcamp-player-links"><button class="text-button" id="dig-next">Siguiente lanzamiento →</button><a id="bandcamp-now-link" target="_blank" rel="noopener">Abrir en Bandcamp ↗</a></div>
-            </div>
-            <div class="bandcamp-native-player" id="bandcamp-native-player" hidden>
-              <div class="bandcamp-native-status"><span class="live-dot"></span><strong>Continuous crate</strong><span id="bandcamp-native-status">Preparando pistas…</span></div>
-              <div class="bandcamp-native-tracklist" id="bandcamp-native-tracklist"></div>
-            </div>
-            <iframe id="bandcamp-player" title="Reproductor oficial de Bandcamp" allow="autoplay; encrypted-media" loading="lazy" hidden></iframe>
-          </div>
-        </div>
-
-        <div class="section-heading bandcamp-browser-heading">
-          <div><p class="eyebrow">Biblioteca pública</p><h2 id="bandcamp-list-title">Tu colección</h2></div>
-          <div class="filter-row" id="bandcamp-filters">
-            <button class="filter-chip is-active" data-bandcamp-mode="collection">Colección</button>
-            <button class="filter-chip" data-bandcamp-mode="wishlist">Wishlist</button>
-            <button class="filter-chip" data-bandcamp-mode="dig">Dig picks</button>
-            <button class="filter-chip" data-bandcamp-mode="house">House charts</button>
-            <button class="filter-chip" data-bandcamp-mode="techno">Techno charts</button>
-          </div>
-        </div>
-        <p class="bandcamp-result-note" id="bandcamp-result-note"></p>
-        <div class="bandcamp-grid" id="bandcamp-grid"></div>
-      </section>
-
-      <section class="view" id="view-favorites">
-        <div class="page-heading">
-          <p class="eyebrow">Guardado en este navegador</p>
-          <h1>Tus favoritos</h1>
-          <p>Las canciones que marcaste durante tus sesiones en signal/.</p>
-        </div>
-        <div class="track-table" id="favorite-tracks"></div>
-      </section>
-
-      <section class="view" id="view-search">
-        <div class="page-heading">
-          <p class="eyebrow">Catálogo externo</p>
-          <h1 id="search-heading">Resultados</h1>
-          <p>La colección de Bandcamp se consulta primero; el catálogo externo funciona como respaldo.</p>
-        </div>
-        <div class="track-table" id="search-results"></div>
+        </aside>
       </section>
     </main>
-  </div>
 
-  <div class="player-bar" id="player-bar" aria-label="Reproductor">
-    <div class="player-track">
-      <div class="player-thumb" id="player-thumb"><span>S</span></div>
-      <div class="player-copy">
-        <strong id="player-title">Selecciona una mezcla</strong>
-        <span id="player-artist">signal / lecoke</span>
+    <aside class="crate-panel" id="crate-panel" aria-label="Mi crate" aria-hidden="true">
+      <div class="crate-head">
+        <div><span class="eyebrow">PERSISTENT SHORTLIST</span><h2>Mi crate</h2></div>
+        <button class="icon-button" id="crate-close" type="button" aria-label="Cerrar crate">×</button>
       </div>
-      <button class="icon-button favorite-button" aria-label="Añadir a favoritos">♡</button>
-    </div>
-    <div class="player-center">
-      <div class="player-controls">
-        <button class="control-button" id="shuffle-button" aria-label="Orden aleatorio">⌘</button>
-        <button class="control-button" id="prev-button" aria-label="Anterior">|◀</button>
-        <button class="main-play" id="main-play" aria-label="Reproducir o pausar">▶</button>
-        <button class="control-button" id="next-button" aria-label="Siguiente">▶|</button>
-        <button class="control-button" id="repeat-button" aria-label="Repetir">↻</button>
+      <div class="crate-summary">
+        <span>Valor seleccionado</span><strong id="crate-total">$0.00</strong><small id="crate-total-note">Los precios se suman por moneda.</small>
       </div>
-      <div class="progress-row">
-        <span id="current-time">0:00</span>
-        <input id="progress" type="range" min="0" max="100" value="0" aria-label="Progreso">
-        <span id="duration">0:00</span>
+      <div class="crate-list" id="crate-list"></div>
+      <div class="crate-footer">
+        <button id="export-crate" type="button">Exportar lista .txt</button>
+        <button class="text-button" id="clear-crate" type="button">Vaciar crate</button>
       </div>
+    </aside>
+    <button class="scrim" id="scrim" type="button" aria-label="Cerrar crate" hidden></button>
+
+    <div class="player-dock" id="player-dock" hidden>
+      <div class="player-copy"><span class="eyebrow">BANDCAMP PLAYER</span><strong id="player-title"></strong></div>
+      <iframe id="bandcamp-player" title="Reproductor oficial de Bandcamp" seamless></iframe>
+      <button class="icon-button" id="player-close" type="button" aria-label="Cerrar reproductor">×</button>
     </div>
-    <div class="player-actions">
-      <span class="source-badge" id="source-badge">BANDCAMP + LOCAL</span>
-      <button class="control-button" id="queue-button" aria-label="Ver cola">☷</button>
-      <span aria-hidden="true">◖</span>
-      <input id="volume" type="range" min="0" max="1" step="0.01" value="0.8" aria-label="Volumen">
-      <a id="full-track-link" class="external-link is-disabled" target="_blank" rel="noopener">Abrir fuente ↗</a>
-    </div>
-  </div>
 
-  <aside class="queue-drawer" id="queue-drawer" aria-label="Cola de reproducción">
-    <div class="drawer-heading"><div><p class="eyebrow">A continuación</p><h2>Tu cola</h2></div><button id="close-queue" class="icon-button">×</button></div>
-    <div id="queue-list"></div>
-  </aside>
+    <template id="card-template">
+      <article class="track-card">
+        <div class="art-wrap">
+          <img class="track-art" alt="" loading="lazy" /><div class="art-placeholder" aria-hidden="true"><span></span></div>
+          <span class="rank-badge"></span><span class="store-badge"></span>
+          <button class="heart-button" type="button" aria-label="Guardar en mi crate"><span aria-hidden="true">♥</span></button>
+        </div>
+        <div class="track-body">
+          <div class="signal-line"><span class="genre-label"></span><span class="popularity-label"></span></div>
+          <h3 class="track-title"></h3><p class="track-artist"></p><p class="track-mix"></p>
+          <div class="track-meta"></div>
+          <div class="track-footer">
+            <div class="price-block"><strong class="track-price"></strong><small class="price-basis"></small></div>
+            <div class="track-actions"><button class="listen-button" type="button">Escuchar</button><a class="store-link" target="_blank" rel="noopener noreferrer">Ver tienda</a></div>
+          </div>
+        </div>
+      </article>
+    </template>
 
-  <div class="profile-popover" id="profile-popover">
-    <strong>Oke / lecoke</strong>
-    <span>Last.fm desde 2009</span>
-    <small>Last.fm alimenta la afinidad. Bandcamp aporta tu colección pública y sus reproductores oficiales.</small>
-  </div>
-
-  <div class="bandcamp-wishlist-modal" id="bandcamp-wishlist-modal" hidden>
-    <div class="wishlist-backdrop" data-close-wishlist></div>
-    <section class="wishlist-dialog" role="dialog" aria-modal="true" aria-labelledby="wishlist-title">
-      <header>
-        <div><p class="eyebrow">BANDCAMP OFICIAL</p><h2 id="wishlist-title">Guardar en tu wishlist</h2></div>
-        <button class="icon-button" data-close-wishlist aria-label="Cerrar">×</button>
-      </header>
-      <p>La app abrirá Bandcamp como página principal para que use tu sesión real. Allí pulsa <strong>Lista de deseos</strong>; sólo ese corazón oficial puede modificar tu cuenta <strong>okefm</strong>.</p>
-      <iframe id="bandcamp-wishlist-frame" title="Panel oficial de wishlist de Bandcamp"></iframe>
-      <footer>
-        <a href="https://bandcamp.com/okefm/wishlist" class="ghost-button" target="_blank" rel="noopener">Ver mi wishlist en Bandcamp</a>
-        <a id="bandcamp-wishlist-link" class="primary-button" target="_blank" rel="noopener">Guardar en Bandcamp ♥</a>
-      </footer>
-    </section>
-  </div>
-
-  <div class="toast" id="toast" role="status" aria-live="polite"></div>
-
-  <script src="app.js" defer></script>
-</body>
+    <script src="./app.js" defer></script>
+  </body>
 </html>

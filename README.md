@@ -1,28 +1,33 @@
-# signal / lecoke
+# signal / dig crate
 
-Reproductor web personal construido a partir del historial público de Last.fm de `lecoke`.
+Dashboard personal de digging para DJ, enfocado en recomendaciones de House y Techno de Bandcamp y Beatport.
 
 ## Qué incluye
 
-- 57.556 scrobbles y 2.639 artistas convertidos en mezclas personales.
-- Señales dedicadas a tu ADN musical, artistas británicos, electrónica 2026 y archivo 2009.
-- 124 lanzamientos de la colección y 112 de la wishlist pública de Bandcamp `okefm`.
-- Reproducción completa mediante los reproductores oficiales de Bandcamp cuando el artista la habilita.
-- Cola continua de streams públicos habilitados por el artista: sigue la siguiente pista del álbum y después el siguiente lanzamiento.
-- Corazón de Bandcamp que abre la página oficial como contexto principal para usar la sesión real de `okefm`; la app sólo muestra el corazón activo cuando el lanzamiento aparece en la wishlist pública.
-- “Dig mode” aleatorio para descubrir sonidos y referencias de house/techno.
-- Rankings internos de House y Techno basados en la señal pública `top` de Bandcamp Discover.
-- Actualizador reproducible para colección, wishlist y charts de Discover.
-- Búsqueda en Bandcamp primero y previews oficiales de Apple/iTunes como respaldo.
-- Carga de archivos de audio propios para reproducción completa en el navegador.
-- Cola, favoritos, controles de volumen, reproducción aleatoria y repetición.
-- Diseño adaptable para escritorio y móvil.
+- Feed combinado de Bandcamp Discover y los rankings Top 100 de Beatport.
+- Filtros por tienda y género, además de orden por señal, precio o BPM.
+- Precios públicos por lanzamiento en Bandcamp y por pista en Beatport.
+- Metadatos de BPM, tonalidad, duración y sello cuando están disponibles.
+- Corazones persistentes en el navegador mediante `localStorage`.
+- Crate con presupuesto acumulado por moneda y exportación a texto.
+- Reproductor oficial de Bandcamp para los lanzamientos que permiten streaming.
+- Enlaces oficiales de búsqueda/compra en ambas tiendas.
 
-## Reproducción y derechos
+## Exactitud de la señal
 
-La aplicación no bloquea anuncios ni elude las reglas de ningún servicio. La reproducción completa usa los streams públicos que Bandcamp entrega para ese lanzamiento, el reproductor oficial de Bandcamp o archivos locales aportados por el usuario. Las previews de Apple/iTunes se conservan únicamente como respaldo. La disponibilidad de cada pista depende de lo habilitado por el artista o sello. La lectura de la página pública usa AllOrigins como proxy CORS y vuelve al reproductor oficial si ese servicio o el stream no están disponibles.
+Bandcamp no publica el número exacto de descargas. La app usa el orden público `top` de Discover y lo identifica como señal `best-selling`. Beatport sí presenta rankings Top 100 por género; el snapshot conserva posición, precio, BPM y tonalidad visibles públicamente.
 
-Bandcamp no ofrece una API pública para modificar la wishlist de una cuenta fan. Por eso el corazón abre la página oficial dentro de la app y el usuario confirma allí el corazón de Bandcamp; la app nunca guarda contraseñas ni intenta reutilizar cookies de la cuenta.
+Las monedas no se convierten entre sí: el total muestra USD, EUR y GBP por separado para evitar una suma incorrecta. Los precios pueden cambiar y no incluyen impuestos.
+
+Los corazones guardan el crate dentro de esta app. Bandcamp y Beatport no ofrecen a esta app estática una API pública para escribir directamente en la wishlist de la cuenta del usuario; el enlace de cada item lleva a la tienda oficial para completar la compra o la acción de cuenta.
+
+## Actualizar el snapshot
+
+```powershell
+python scripts\build_recommendations.py
+```
+
+El script consulta Bandcamp Discover, obtiene el precio público de cada lanzamiento y combina esos datos con el snapshot verificado de Beatport. Cuando cambie el chart de Beatport, actualiza la constante `BEATPORT` del script con la información del Top 100 oficial y vuelve a ejecutarlo.
 
 ## Ejecutar localmente
 
@@ -32,19 +37,8 @@ Haz doble clic en `START_SIGNAL.cmd`, o ejecuta:
 python scripts\serve.py
 ```
 
-El servidor abre `http://127.0.0.1:4188`, habilita la cola continua y permite volver a sincronizar la wishlist pública desde el botón de la app, sin guardar cookies ni credenciales de Bandcamp.
-
-Para volver a sincronizar la colección pública de Bandcamp:
-
-```powershell
-python scripts\import_bandcamp.py okefm
-```
-
-Bandcamp no expone conteos públicos exactos de escuchas o descargas. La app presenta su orden público de Discover (`top`/best-selling) y lo identifica expresamente como tal.
-
-Los charts se actualizan al ejecutar el importador antes de publicar. Bandcamp bloquea este endpoint desde los runners compartidos de GitHub Actions, por lo que no se incluye un workflow programado que fallaría de forma recurrente.
+La app abre en `http://127.0.0.1:4188`.
 
 ## Publicación
 
-Cada actualización de la rama `main` se despliega automáticamente en GitHub Pages mediante el workflow incluido en `.github/workflows/pages.yml`.
-
+Cada actualización de la rama `main` se despliega automáticamente en GitHub Pages mediante `.github/workflows/pages.yml`.
