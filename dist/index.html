@@ -37,6 +37,39 @@
         </div>
       </section>
 
+      <section class="radio-stage shell" aria-label="Emisora signal">
+        <div class="radio-visual" id="radio-visual">
+          <img id="radio-art" alt="" />
+          <div class="radio-grooves" aria-hidden="true"><i></i></div>
+          <span class="on-air"><i></i> ON AIR</span>
+        </div>
+        <div class="radio-main">
+          <div class="radio-heading">
+            <div><span class="eyebrow">SIGNAL RADIO / BANDCAMP FULL STREAM</span><h2 id="radio-title">Tu emisora de digging</h2></div>
+            <button class="radio-heart" id="radio-heart" type="button" aria-label="Guardar pista actual" disabled>♥</button>
+          </div>
+          <p id="radio-artist">Pulsa play para recorrer automáticamente la selección House y Techno de Bandcamp.</p>
+          <div class="radio-wave" id="radio-wave" aria-hidden="true"></div>
+          <div class="radio-timeline">
+            <span id="radio-current-time">0:00</span>
+            <input id="radio-progress" type="range" min="0" max="100" value="0" aria-label="Progreso de reproducción" />
+            <span id="radio-duration">0:00</span>
+          </div>
+          <div class="radio-controls">
+            <button class="transport-button" id="radio-previous" type="button" aria-label="Pista anterior">‹</button>
+            <button class="play-button" id="radio-play" type="button"><span aria-hidden="true">▶</span><span class="play-label">Iniciar emisora</span></button>
+            <button class="transport-button" id="radio-next" type="button" aria-label="Pista siguiente">›</button>
+            <button class="mode-button is-active" id="radio-shuffle" type="button" aria-pressed="true">Aleatorio</button>
+          </div>
+          <div class="radio-status"><span id="radio-status">Preparando la señal…</span><a id="radio-store-link" href="https://bandcamp.com" target="_blank" rel="noopener noreferrer">Ver en Bandcamp</a></div>
+        </div>
+        <div class="up-next">
+          <span class="eyebrow">A CONTINUACIÓN</span>
+          <div class="next-card" id="next-card"><span class="next-rank">—</span><div><strong>Preparando cola</strong><small>House + Techno</small></div></div>
+          <p>La siguiente pista se precarga y empieza automáticamente al terminar la actual.</p>
+        </div>
+      </section>
+
       <section class="control-deck shell" aria-label="Filtros de recomendaciones">
         <div class="filter-group">
           <span class="filter-label">Tienda</span>
@@ -119,12 +152,6 @@
     </aside>
     <button class="scrim" id="scrim" type="button" aria-label="Cerrar crate" hidden></button>
 
-    <div class="player-dock" id="player-dock" hidden>
-      <div class="player-copy"><span class="eyebrow">BANDCAMP PLAYER</span><strong id="player-title"></strong></div>
-      <iframe id="bandcamp-player" title="Reproductor oficial de Bandcamp" seamless></iframe>
-      <button class="icon-button" id="player-close" type="button" aria-label="Cerrar reproductor">×</button>
-    </div>
-
     <template id="card-template">
       <article class="track-card">
         <div class="art-wrap">
@@ -138,7 +165,7 @@
           <div class="track-meta"></div>
           <div class="track-footer">
             <div class="price-block"><strong class="track-price"></strong><small class="price-basis"></small></div>
-            <div class="track-actions"><button class="listen-button" type="button">Escuchar</button><a class="store-link" target="_blank" rel="noopener noreferrer">Ver tienda</a></div>
+              <div class="track-actions"><button class="listen-button" type="button">A la radio</button><a class="store-link" target="_blank" rel="noopener noreferrer">Ver tienda</a></div>
           </div>
         </div>
       </article>

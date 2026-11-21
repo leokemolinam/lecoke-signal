@@ -9,6 +9,18 @@ const state = {
   sort: "signal",
 };
 
+const radio = {
+  audio: new Audio(),
+  queue: [],
+  index: 0,
+  shuffle: true,
+  streamCache: new Map(),
+  loadToken: 0,
+  hasStarted: false,
+  consecutiveErrors: 0,
+};
+radio.audio.preload = "auto";
+
 const $ = (selector, root = document) => root.querySelector(selector);
 const $$ = (selector, root = document) => [...root.querySelectorAll(selector)];
 
@@ -90,6 +102,7 @@ function toggleLike(id) {
   persistLikes();
   renderCards();
   renderCrate();
+  syncRadioHeart();
 }
 
 function metaPill(text) {
@@ -139,7 +152,7 @@ function renderCards() {
     heart.addEventListener("click", () => toggleLike(item.id));
 
     const listen = $(".listen-button", fragment);
-    if (item.store === "bandcamp" && item.embedUrl) listen.addEventListener("click", () => openPlayer(item));
+    if (item.store === "bandcamp") listen.addEventListener("click", () => startStationAt(item));
     else listen.remove();
     const storeLink = $(".store-link", fragment);
     storeLink.href = item.url;
@@ -246,15 +259,221 @@ function closeCrate() {
   document.body.style.overflow = "";
 }
 
-function openPlayer(item) {
-  $("#player-title").textContent = `${item.artist} — ${item.title}`;
-  $("#bandcamp-player").src = item.embedUrl;
-  $("#player-dock").hidden = false;
+function shuffled(items) {
+  const copy = [...items];
+  for (let index = copy.length - 1; index > 0; index -= 1) {
+    const swap = Math.floor(Math.random() * (index + 1));
+    [copy[index], copy[swap]] = [copy[swap], copy[index]];
+  }
+  return copy;
 }
 
-function closePlayer() {
-  $("#player-dock").hidden = true;
-  $("#bandcamp-player").src = "about:blank";
+function buildRadioQueue(keepItem = null) {
+  const bandcamp = state.items.filter((item) => item.store === "bandcamp" && item.featuredTrackId);
+  radio.queue = radio.shuffle ? shuffled(bandcamp) : [...bandcamp].sort((a, b) => a.genre.localeCompare(b.genre) || a.rank - b.rank);
+  if (keepItem) {
+    const index = radio.queue.findIndex((item) => item.id === keepItem.id);
+    if (index >= 0) radio.index = index;
+  } else {
+    radio.index = 0;
+  }
+  updateRadioView();
+}
+
+function currentRadioItem() {
+  return radio.queue[radio.index] || null;
+}
+
+function nextRadioItem() {
+  if (!radio.queue.length) return null;
+  return radio.queue[(radio.index + 1) % radio.queue.length];
+}
+
+function bandcampDetailsUrl(item) {
+  const params = new URLSearchParams({
+    band_id: item.bandId,
+    tralbum_type: item.itemType,
+    tralbum_id: item.itemId,
+  });
+  return `https://bandcamp.com/api/mobile/24/tralbum_details?${params}`;
+}
+
+async function fetchBandcampDetails(item) {
+  const target = bandcampDetailsUrl(item);
+  const proxy = `https://api.allorigins.win/raw?url=${encodeURIComponent(target)}`;
+  const response = await fetch(proxy, { cache: "no-store" });
+  if (!response.ok) throw new Error(`Bandcamp respondió ${response.status}`);
+  return response.json();
+}
+
+async function resolveStream(item) {
+  if (radio.streamCache.has(item.id)) return radio.streamCache.get(item.id);
+  const details = await fetchBandcampDetails(item);
+  const tracks = Array.isArray(details.tracks) ? details.tracks : [];
+  const track = tracks.find((candidate) => Number(candidate.track_id) === Number(item.featuredTrackId) && candidate.streaming_url?.["mp3-128"])
+    || tracks.find((candidate) => candidate.is_streamable && candidate.streaming_url?.["mp3-128"]);
+  if (!track) throw new Error("El artista no habilitó streaming para esta pista");
+  const stream = track.streaming_url["mp3-128"];
+  radio.streamCache.set(item.id, stream);
+  return stream;
+}
+
+function setRadioStatus(message) {
+  $("#radio-status").textContent = message;
+}
+
+function syncRadioHeart() {
+  const item = currentRadioItem();
+  const button = $("#radio-heart");
+  button.disabled = !item;
+  const liked = Boolean(item && state.liked.has(item.id));
+  button.classList.toggle("is-liked", liked);
+  button.setAttribute("aria-pressed", String(liked));
+  button.setAttribute("aria-label", liked ? "Quitar pista actual de mi crate" : "Guardar pista actual en mi crate");
+}
+
+function updateNextCard() {
+  const item = nextRadioItem();
+  if (!item) return;
+  $(".next-rank", $("#next-card")).textContent = `#${item.rank}`;
+  $("strong", $("#next-card")).textContent = item.title;
+  $("small", $("#next-card")).textContent = `${item.artist} · ${item.genre}`;
+  resolveStream(item).catch(() => {});
+}
+
+function updateRadioView() {
+  const item = currentRadioItem();
+  if (!item) return;
+  $("#radio-title").textContent = item.mix || item.title;
+  $("#radio-artist").textContent = `${item.artist} · ${item.title} · ${item.genre}`;
+  $("#radio-store-link").href = item.url;
+  const visual = $("#radio-visual");
+  const art = $("#radio-art");
+  visual.classList.toggle("has-art", Boolean(item.artwork));
+  if (item.artwork) {
+    art.src = item.artwork;
+    art.alt = `Portada de ${item.title}`;
+  } else {
+    art.removeAttribute("src");
+    art.alt = "";
+  }
+  syncRadioHeart();
+  updateNextCard();
+}
+
+function setPlayingUi(playing) {
+  if (playing) radio.hasStarted = true;
+  $(".radio-stage").classList.toggle("is-playing", playing);
+  $("#radio-play .play-label").textContent = playing ? "Pausar" : radio.hasStarted ? "Continuar" : "Iniciar emisora";
+  $("#radio-play > span:first-child").textContent = playing ? "Ⅱ" : "▶";
+}
+
+async function loadRadioItem(item, shouldPlay = false) {
+  if (!item) return;
+  const token = ++radio.loadToken;
+  radio.audio.pause();
+  setPlayingUi(false);
+  $("#radio-progress").value = 0;
+  $("#radio-current-time").textContent = "0:00";
+  $("#radio-duration").textContent = formatDuration(item.duration) || "—";
+  updateRadioView();
+  setRadioStatus("Cargando stream completo de Bandcamp…");
+  try {
+    const stream = await resolveStream(item);
+    if (token !== radio.loadToken) return;
+    radio.audio.src = stream;
+    radio.audio.load();
+    setRadioStatus("Stream listo · avance automático activado");
+    if (shouldPlay) {
+      await radio.audio.play();
+      setPlayingUi(true);
+      setRadioStatus("En vivo · la siguiente pista empezará automáticamente");
+    }
+  } catch (error) {
+    setRadioStatus(`${error.message}. Usa “Ver en Bandcamp” para escuchar.`);
+  }
+}
+
+async function toggleRadio() {
+  const item = currentRadioItem();
+  if (!item) return;
+  if (!radio.audio.src) {
+    await loadRadioItem(item, true);
+    return;
+  }
+  if (radio.audio.paused) {
+    try {
+      await radio.audio.play();
+      setPlayingUi(true);
+      setRadioStatus("En vivo · la siguiente pista empezará automáticamente");
+    } catch {
+      setRadioStatus("Pulsa de nuevo para autorizar el audio en este navegador.");
+    }
+  } else {
+    radio.audio.pause();
+    setPlayingUi(false);
+    setRadioStatus("Emisora en pausa");
+  }
+}
+
+async function stepRadio(direction, autoplay = !radio.audio.paused) {
+  if (!radio.queue.length) return;
+  radio.index = (radio.index + direction + radio.queue.length) % radio.queue.length;
+  await loadRadioItem(currentRadioItem(), autoplay);
+}
+
+async function startStationAt(item) {
+  const index = radio.queue.findIndex((candidate) => candidate.id === item.id);
+  if (index < 0) return;
+  radio.index = index;
+  await loadRadioItem(item, true);
+  $(".radio-stage").scrollIntoView({ behavior: "smooth", block: "center" });
+}
+
+function bindRadio() {
+  $("#radio-play").addEventListener("click", toggleRadio);
+  $("#radio-next").addEventListener("click", () => stepRadio(1, true));
+  $("#radio-previous").addEventListener("click", () => stepRadio(-1, true));
+  $("#radio-heart").addEventListener("click", () => {
+    const item = currentRadioItem();
+    if (item) toggleLike(item.id);
+  });
+  $("#radio-shuffle").addEventListener("click", (event) => {
+    const current = currentRadioItem();
+    radio.shuffle = !radio.shuffle;
+    event.currentTarget.classList.toggle("is-active", radio.shuffle);
+    event.currentTarget.setAttribute("aria-pressed", String(radio.shuffle));
+    buildRadioQueue(current);
+  });
+  $("#radio-progress").addEventListener("input", (event) => {
+    if (!Number.isFinite(radio.audio.duration)) return;
+    radio.audio.currentTime = (Number(event.target.value) / 100) * radio.audio.duration;
+  });
+  radio.audio.addEventListener("timeupdate", () => {
+    const duration = radio.audio.duration;
+    $("#radio-current-time").textContent = formatDuration(radio.audio.currentTime) || "0:00";
+    if (Number.isFinite(duration) && duration > 0) $("#radio-progress").value = (radio.audio.currentTime / duration) * 100;
+  });
+  radio.audio.addEventListener("loadedmetadata", () => {
+    $("#radio-duration").textContent = formatDuration(radio.audio.duration) || "—";
+  });
+  radio.audio.addEventListener("play", () => {
+    radio.consecutiveErrors = 0;
+    setPlayingUi(true);
+  });
+  radio.audio.addEventListener("pause", () => setPlayingUi(false));
+  radio.audio.addEventListener("ended", () => stepRadio(1, true));
+  radio.audio.addEventListener("error", () => {
+    setPlayingUi(false);
+    radio.consecutiveErrors += 1;
+    radio.streamCache.delete(currentRadioItem()?.id);
+    if (radio.consecutiveErrors >= radio.queue.length) {
+      setRadioStatus("Bandcamp no permitió reproducir esta cola. Intenta de nuevo más tarde.");
+      return;
+    }
+    setRadioStatus("El stream expiró. Cargando la siguiente pista…");
+    stepRadio(1, true);
+  });
 }
 
 function exportCrate() {
@@ -288,7 +507,6 @@ function bindControls() {
   $("#crate-trigger").addEventListener("click", openCrate);
   $("#crate-close").addEventListener("click", closeCrate);
   $("#scrim").addEventListener("click", closeCrate);
-  $("#player-close").addEventListener("click", closePlayer);
   $("#export-crate").addEventListener("click", exportCrate);
   $("#clear-crate").addEventListener("click", () => {
     if (!state.liked.size || !window.confirm("¿Vaciar todas las pistas guardadas en tu crate?")) return;
@@ -303,11 +521,9 @@ function bindControls() {
     $("#method-content").hidden = expanded;
   });
   document.addEventListener("keydown", (event) => {
-    if (event.key === "Escape") {
-      closeCrate();
-      closePlayer();
-    }
+    if (event.key === "Escape") closeCrate();
   });
+  bindRadio();
 }
 
 async function init() {
@@ -327,6 +543,8 @@ async function init() {
     $("#method-prices").textContent = payload.methodology.prices;
     renderCards();
     renderCrate();
+    buildRadioQueue();
+    loadRadioItem(currentRadioItem(), false);
   } catch (error) {
     $("#recommendation-grid").innerHTML = `<div class="empty-crate">No fue posible cargar el snapshot. ${error.message}</div>`;
   }

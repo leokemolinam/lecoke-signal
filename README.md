@@ -5,12 +5,15 @@ Dashboard personal de digging para DJ, enfocado en recomendaciones de House y Te
 ## Qué incluye
 
 - Feed combinado de Bandcamp Discover y los rankings Top 100 de Beatport.
+- Emisora continua con streams completos habilitados por los artistas en Bandcamp.
+- Reproductor con play/pausa, anterior, siguiente, aleatorio, progreso, precarga y avance automático.
+- Corazón disponible tanto en la emisora como en cada recomendación.
 - Filtros por tienda y género, además de orden por señal, precio o BPM.
 - Precios públicos por lanzamiento en Bandcamp y por pista en Beatport.
 - Metadatos de BPM, tonalidad, duración y sello cuando están disponibles.
 - Corazones persistentes en el navegador mediante `localStorage`.
 - Crate con presupuesto acumulado por moneda y exportación a texto.
-- Reproductor oficial de Bandcamp para los lanzamientos que permiten streaming.
+- Resolución de streams públicos de Bandcamp en el momento de reproducir para evitar enlaces vencidos.
 - Enlaces oficiales de búsqueda/compra en ambas tiendas.
 
 ## Exactitud de la señal
@@ -20,6 +23,8 @@ Bandcamp no publica el número exacto de descargas. La app usa el orden público
 Las monedas no se convierten entre sí: el total muestra USD, EUR y GBP por separado para evitar una suma incorrecta. Los precios pueden cambiar y no incluyen impuestos.
 
 Los corazones guardan el crate dentro de esta app. Bandcamp y Beatport no ofrecen a esta app estática una API pública para escribir directamente en la wishlist de la cuenta del usuario; el enlace de cada item lleva a la tienda oficial para completar la compra o la acción de cuenta.
+
+La emisora requiere un primer clic en Play porque los navegadores y Bandcamp no permiten iniciar audio automáticamente. Después de ese gesto, la siguiente pista se carga sola. Bandcamp puede limitar el número de reproducciones completas antes de pedir la compra, según la configuración de cada artista.
 
 ## Actualizar el snapshot
 
